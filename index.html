@@ -163,6 +163,8 @@ table.tb td:first-child,table.tb th:first-child{text-align:left}
 .lockbox{padding:14px 16px;border:2px dashed var(--line);border-radius:12px;color:var(--muted);margin:16px 0}
 .gated{margin:16px 0}
 .opt{word-spacing:.35em}
+.reset-btn{white-space:nowrap;flex:none}
+.reset-btn.armed{background:var(--bad-soft);border-color:var(--bad);color:var(--ink)}
 .cell.near{border-color:#d98a00;background:color-mix(in srgb,#d98a00 14%,transparent)}
 .kbref{display:flex;flex-direction:column;gap:6px}
 .kbref .kbwrap{max-width:560px}
@@ -181,6 +183,8 @@ table.tb td:first-child,table.tb th:first-child{text-align:left}
 .muted{color:var(--muted)}
 .tag{font:600 11px var(--mono);padding:2px 7px;border-radius:99px;background:var(--surface2);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .finish{text-align:center;padding:28px 16px;border-radius:16px;background:var(--accent-soft)}
+@media (max-width:420px){ .meter{display:none} .top{justify-content:space-between} }
+@media (max-width:340px){ .brand{display:none} .btn.menu-btn{padding:6px 8px} }
 @media (max-width:860px){
   .shell{grid-template-columns:minmax(0,1fr)}
   .rail{display:none;position:fixed;inset:calc(53px + env(safe-area-inset-top,0px)) 0 0 0;max-height:none;background:var(--surface);z-index:25;border:0;padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -189,7 +193,12 @@ table.tb td:first-child,table.tb th:first-child{text-align:left}
   .brand{font-size:17px}
   #metertxt{display:none}
   .top{gap:10px}
-  .meter .bar{max-width:none}
+  .meter .bar{max-width:none;min-width:12px}
+  .meter{min-width:0}
+  .btn.menu-btn{white-space:nowrap;flex:none}
+  .top{gap:8px}
+  .brand{font-size:15px}
+  .reset-btn{padding:6px 10px}
   body{font-size:16.5px}
 }
 :root[data-theme="dark"] .m-e text,:root[data-theme="dark"] .m-a text{fill:#0c1020}
@@ -1926,10 +1935,6 @@ const App = {
       rail.append(h('div',{class:'unit'}, head, h('div',{class:'ul'}, ls.map(l => h('button',{class:'lnk'+(this.isDone(l)?' done':this.isPart(l)?' part':''), 'aria-current':this.cur&&this.cur.id===l.id?'true':'false', onclick:() => this.show(l.id)},
         h('span',{class:'dot'}, this.isDone(l)?'✓':''), l.title)))));
     });
-    const rs = h('div',{class:'unit', style:'margin-top:14px'});
-    let armed = false;
-    const b = h('button',{class:'btn ghost sm', onclick:() => { if(!armed){ armed = true; b.textContent = 'Tap again to erase all progress'; return; } Store.d = {ex:{},m:{},seen:{},last:null}; Store.save(); this.show('notes'); }}, 'Reset progress');
-    rs.append(b); rail.append(rs);
   },
   makeL(l){
     const root = h('div',{class:'lesson'}); let started = false;
@@ -1966,7 +1971,12 @@ const App = {
     const top = document.getElementById('top');
     top.append(h('button',{class:'btn menu-btn', 'aria-label':'Show lessons', onclick:() => document.getElementById('rail').classList.toggle('open')}, '☰ Lessons'),
       h('div',{class:'brand', html:'Harmony from <b>Scratch</b>'}),
-      h('div',{class:'meter'}, h('div',{class:'bar'}, h('i',{id:'meterbar'})), h('span',{id:'metertxt'})));
+      h('div',{class:'meter'}, h('div',{class:'bar'}, h('i',{id:'meterbar'})), h('span',{id:'metertxt'})),
+      (() => { let armed = false, t = null; const sm = () => window.innerWidth < 600, idle = () => sm() ? 'Reset' : 'Reset progress', sure = () => sm() ? 'Sure?' : 'Tap again to erase everything';
+        const b = h('button',{class:'btn sm reset-btn', title:'Erase all saved progress in this browser'}, idle());
+        b.onclick = () => { if(!armed){ armed = true; b.textContent = sure(); b.classList.add('armed'); t = setTimeout(() => { armed = false; b.textContent = idle(); b.classList.remove('armed'); }, 4000); return; }
+          clearTimeout(t); armed = false; b.textContent = idle(); b.classList.remove('armed'); Store.d = {ex:{},m:{},seen:{},last:null}; Store.save(); this.show('notes'); };
+        return b; })());
     let start = Store.d.last; const hash = (location.hash||'').slice(1); if(LESSONS.some(l => l.id===hash)) start = hash;
     this.show(LESSONS.some(l => l.id===start) ? start : LESSONS[0].id);
   },
