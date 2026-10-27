@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Interactive music theory course: scales, chords, Roman numerals, function, borrowed chords, modulation and extended chords.">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Harmony from Scratch: an interactive music theory course with sound.">
 <title>Harmony from Scratch</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
@@ -129,7 +129,7 @@ details.wild small{color:var(--muted)}
 .tsbtn.T{border:2px solid var(--t5);color:var(--t5)} .tsbtn.S{border:2px solid var(--t3);color:var(--t3)}
 .tsbtn.ok{background:var(--good-soft)} .tsbtn.bad{background:var(--bad-soft)}
 .gridx{display:grid;gap:8px;overflow-x:auto;padding-bottom:4px}
-.gridx .hd{font:600 12px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;align-self:end}
+.gridx .hd{font:600 13px var(--mono);color:var(--muted);letter-spacing:.03em;align-self:end}
 .gridx .rl{font-weight:700;align-self:center;white-space:nowrap}
 .cell{width:100%;min-width:56px;height:42px;border-radius:9px;border:2px solid var(--line);background:var(--surface);text-align:center;font-weight:700;font-size:17px}
 .cell.ok{border-color:var(--good);background:var(--good-soft)} .cell.bad{border-color:var(--bad);background:var(--bad-soft)}
@@ -153,9 +153,20 @@ details.wild small{color:var(--muted)}
 .fn-T{color:var(--t5)} .fn-S{color:var(--t3)} .fn-D{color:var(--t7)}
 table.tb{border-collapse:collapse;width:100%;font-size:15.5px}
 table.tb th,table.tb td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:center;white-space:nowrap}
-table.tb th{font:600 12px var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+table.tb th{font:600 13px var(--mono);letter-spacing:.03em;color:var(--muted)}
 table.tb td:first-child,table.tb th:first-child{text-align:left}
 .tscroll{overflow-x:auto}
+.ex.mastered{border-left:4px solid var(--good);background:color-mix(in srgb,var(--good) 6%,var(--card,transparent))}
+.ex.mastered .exh h4{color:var(--muted)}
+.donemsg{padding:12px 14px;border-radius:10px;background:color-mix(in srgb,var(--good) 12%,transparent);color:var(--ink)}
+.mst{color:var(--good)}
+.lockbox{padding:14px 16px;border:2px dashed var(--line);border-radius:12px;color:var(--muted);margin:16px 0}
+.gated{margin:16px 0}
+.opt{word-spacing:.35em}
+.cell.near{border-color:#d98a00;background:color-mix(in srgb,#d98a00 14%,transparent)}
+.kbref{display:flex;flex-direction:column;gap:6px}
+.kbref .kbwrap{max-width:560px}
+
 .cof{width:100%;max-width:380px;margin:0 auto;display:block}
 .cof g{cursor:pointer;outline:none} .cof g:focus-visible path{stroke:var(--accent);stroke-width:3}
 .cof .seg{fill:var(--surface);stroke:var(--line);stroke-width:1.5} .cof .seg2{fill:var(--surface2);stroke:var(--line);stroke-width:1.5}
@@ -185,8 +196,8 @@ table.tb td:first-child,table.tb th:first-child{text-align:left}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .m-e text,:root:not([data-theme="light"]) .m-a text{fill:#0c1020}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
-</head>
-<body>
+</head><body>
+
 <div id="top" class="top"></div>
 <div class="shell"><nav id="rail" class="rail" aria-label="Lessons"></nav><main id="main"></main></div>
 <script>
@@ -573,7 +584,9 @@ function Exercise(L, def){
   const card = h('div',{class:'card ex'},
     h('div',{class:'exh'}, h('h4',{}, def.title), pips),
     def.intro ? h('p',{html:def.intro}) : null, stage, fb, h('div',{class:'row acts'}, bCheck, bNext, h('span',{class:'grow'}), bHint, bShow));
-  let v = null, solved = false;
+  let v = null, solved = false, seen = [];
+  const isDone = () => (Store.d.ex[key]||0) >= need;
+  const markDone = () => { card.classList.add('mastered'); bNext.hidden = true; bCheck.hidden = true; bShow.hidden = true; bHint.hidden = true; };
   const say = (cls, html) => { fb.className = 'fb ' + cls; fb.innerHTML = html; fb.hidden = false; };
   const drawPips = () => {
     const n = Math.min(need, Store.d.ex[key] || 0);
@@ -582,7 +595,12 @@ function Exercise(L, def){
   const api = { submit };
   function fresh(){
     solved = false; fb.hidden = true; bNext.hidden = true; bShow.hidden = true; stage.replaceChildren();
-    v = def.view(def.make(), api);
+    if(isDone()){ card.classList.add('mastered'); stage.append(h('div',{class:'donemsg'}, h('b',{}, 'Mastered.'), ' You have completed this exercise, so it is now locked.')); bCheck.hidden = true; bHint.hidden = true; v = {check:() => ({ok:null}), reveal(){}}; return; }
+    const att = Store.d.ex[key]||0; if(att===0) seen = [];
+    let q, sg, tries = 0;
+    do { q = def.make(att, need); try{ sg = def.sig ? def.sig(q) : JSON.stringify(q); }catch(e){ sg = Math.random(); } } while(seen.includes(sg) && ++tries < 60);
+    seen.push(sg);
+    v = def.view(q, api);
     stage.append(v.el);
     bHint.hidden = !v.hint; bCheck.hidden = !!v.auto;
   }
@@ -594,9 +612,11 @@ function Exercise(L, def){
       solved = true; Store.d.ex[key] = (Store.d.ex[key]||0) + 1;
       if(Store.d.ex[key] >= need){ Store.d.m = Store.d.m || {}; Store.d.m[key] = 1; }
       Store.save(); drawPips();
-      say('good', 'Correct. <span>' + (r.msg||'') + '</span>');
+      const fin = isDone();
+      say('good', 'Correct. <span>' + (r.msg||'') + '</span>' + (fin ? ' <b class="mst">Exercise mastered.</b>' : ''));
       bNext.hidden = false; bCheck.hidden = true; bShow.hidden = true; if(v.lock) v.lock();
-      App.refresh();
+      if(fin) markDone();
+      App.refresh(); document.dispatchEvent(new Event('exdone'));
     } else {
       say('bad', 'Not quite. <span>' + (r.msg||'') + '</span>'); bShow.hidden = false; if(v.retry) v.retry();
     }
@@ -606,8 +626,20 @@ function Exercise(L, def){
   bShow.onclick = () => { v.reveal(); solved = true; say('info', 'Here is the answer. Try the next question for credit.'); bNext.hidden = false; bShow.hidden = true; bCheck.hidden = true; };
   bNext.onclick = fresh;
   drawPips(); fresh();
-  card._v = () => v; card._fresh = fresh;
+  card._v = () => v; card._fresh = fresh; card._seen = () => seen;
   return card;
+}
+
+/* ---- Content that unlocks once exercises are mastered ---- */
+function Gated(keys, build, msg){
+  const box = h('div',{class:'gated'});
+  const upd = () => {
+    const ok = keys.every(k => (Store.d.m||{})[k]);
+    if(box.dataset.on === (ok?'1':'0')) return; box.dataset.on = ok?'1':'0';
+    box.replaceChildren(ok ? build() : h('div',{class:'lockbox'}, h('b',{}, 'Locked. '), msg || 'Complete the exercises above to unlock this.'));
+  };
+  document.addEventListener('exdone', () => { if(box.isConnected) upd(); });
+  upd(); return box;
 }
 
 /* ---- View: multiple choice ---- */
@@ -638,50 +670,72 @@ function qChoice(o, api){
 function qGrid(o, api){
   const ncol = Math.max(...o.rows.map(r => r.cells.length));
   const grid = h('div',{class:'gridx', style:`grid-template-columns:${o.rowLabels===false?'':'auto '}repeat(${ncol},minmax(58px,1fr))`});
-  let last = null; const cells = [];
+  let last = null; const cells = []; const rowInps = o.rows.map(() => []); const info = new Map();
+  const kb = o.keyboard===false ? null : Keyboard({});
+  const fold = ms => ms.map(e => e.m > 84 ? {...e, m:e.m-12} : e);
+  const refreshKb = inp => { if(!kb) return;
+    const meta = inp ? info.get(inp) : null, ri = meta ? meta.ri : 0, r = o.rows[ri];
+    if(r.show){ kb.setMarks(fold(noteMarks(r.show, 60, null, true))); return; }
+    const isChord = meta && (meta.c.kind==='chord' || o.kind==='chord');
+    if(isChord){
+      let p = null; try{ p = parseChord(inp.value.trim()); }catch(e){}
+      if(p && p.q){ const ns = chordNotes(p.root, p.q); kb.setMarks(fold(chordMarks(ns, 60, p.q))); } else kb.setMarks([]);
+      return; }
+    const ns = rowInps[ri].map(i => { try{ return parseNote(i.value.trim()); }catch(e){ return null; } }).filter(Boolean);
+    kb.setMarks(ns.length ? noteMarks(ns, 60, null, true) : []); };
   if(o.cols){ if(o.rowLabels!==false) grid.append(h('div')); o.cols.forEach(c => grid.append(h('div',{class:'hd', html:c}))); }
   o.rows.forEach((r,ri) => {
     if(o.rowLabels !== false) grid.append(h('div',{class:'rl', html:r.label||''}));
     for(let ci=0; ci<ncol; ci++){
       const c = r.cells[ci];
       if(!c){ grid.append(h('div')); continue; }
-      if(c.pre !== undefined){ grid.append(h('input',{class:'cell ok', value:c.pre, disabled:true, 'aria-label':'given'})); continue; }
+      if(c.pre !== undefined){ const pi = h('input',{class:'cell ok', value:c.pre, disabled:true, 'aria-label':'given'}); rowInps[ri].push(pi); grid.append(pi); continue; }
       const inp = h('input',{class:'cell', autocomplete:'off', autocapitalize:'characters', spellcheck:'false', 'aria-label':(r.label||'')+' answer '+(ci+1),
-        onfocus:() => { last = inp; }, oninput:() => { inp.classList.remove('ok','bad'); },
+        onfocus:() => { last = inp; refreshKb(inp); }, oninput:() => { inp.classList.remove('ok','bad','near'); refreshKb(inp); },
         onkeydown:e => { if(e.key==='Enter'){ const i = cells.findIndex(x=>x.inp===inp); const nx = cells[i+1]; if(nx) nx.inp.focus(); else api.submit(); } }});
-      cells.push({inp, c}); grid.append(inp);
+      info.set(inp, {ri, ci, c}); cells.push({inp, c}); rowInps[ri].push(inp); grid.append(inp);
     }
   });
-  const ins = ch => { if(!last) return; last.value += ch; last.focus(); last.classList.remove('ok','bad'); };
+  const ins = ch => { if(!last) return; last.value += ch; last.focus(); last.classList.remove('ok','bad','near'); refreshKb(last); };
+  refreshKb(null);
   const helpers = (o.kind==='chord' ? ['♯','♭','m','°','7','maj7','m7♭5'] : ['♯','♭']).map(s => h('button',{class:'btn sm', type:'button', onclick:() => ins(s)}, s));
   const el = h('div',{style:'display:flex;flex-direction:column;gap:12px'},
     o.prompt ? h('div',{html:o.prompt}) : null,
     o.listen ? h('div',{class:'row'}, o.listen.map(l => Listen(l.label, l.fn))) : null,
     o.extra || null, grid,
+    kb ? h('div',{class:'kbref'}, kb.el, h('span',{class:'muted',style:'font-size:14px'}, o.kind==='chord' ? 'Keyboard for reference: it shows the chord in the box you are typing in. Tap a key to hear it, and count the semitones.' : 'Keyboard for reference: the notes you type light up, so you can check the gaps. Tap any key to hear it.')) : null,
     h('div',{class:'row'}, h('span',{class:'lab'},'Tap to add'), helpers, h('span',{class:'muted', style:'font-size:14px'}, o.kind==='chord'?'Type chords like F♯m, B♭, Dmaj7 (or Fm, Bb, D7).':'Type notes like F♯ or B♭ (you can also type F# and Bb).')));
   const show = e => e.root ? chordSym(e.root, e.q) : nm(e);
   return { el, hint:o.hint,
     check(){
-      let wrong = 0, spell = [], empty = 0;
+      if(cells.some(({inp}) => !inp.value.trim())) return {ok:null, msg:'Fill in every box first.'};
+      let red = 0, amber = 0; const tips = [], notes = [];
       cells.forEach(({inp,c}) => {
-        const val = inp.value.trim();
-        if(!val){ empty++; return; }
-      });
-      if(empty) return {ok:null, msg:'Fill in every box first.'};
-      cells.forEach(({inp,c}) => {
-        const val = inp.value.trim(); let ok = false;
+        const val = inp.value.trim(); let st = 'bad';
         if(c.kind==='chord' || o.kind==='chord'){
-          const p = parseChord(val); ok = !!(p && p.q && sameNote(p.root,c.expect.root) && p.q===c.expect.q);
+          const p = parseChord(val), e = c.expect;
+          if(p && p.q && p.q===e.q){
+            if(sameNote(p.root,e.root)) st = 'ok';
+            else if(pc(p.root)===pc(e.root)){
+              if(o.lenient){ st = 'ok'; notes.push(`${val} is accepted because it is the same chord on the piano, but in this key the technically correct name is ${chordSym(e.root,e.q)}.`); }
+              else { st = 'near'; tips.push(`${val} is the right chord, the same sound on the piano. In this key it is spelled ${chordSym(e.root,e.q)}, so write it that way.`); }
+            }
+          }
         } else {
-          const p = parseNote(val); ok = !!(p && sameNote(p,c.expect));
-          if(!ok && p && pc(p)===pc(c.expect)) spell.push(`${val} sounds right, but the letter names must go in order: it should be ${nm(c.expect)}.`);
+          const p = parseNote(val), e = c.expect;
+          if(p && sameNote(p,e)) st = 'ok';
+          else if(p && pc(p)===pc(e)){
+            if(o.lenient){ st = 'ok'; notes.push(`${val} is accepted because it is the same pitch as ${nm(e)}, but ${nm(e)} is the technically correct spelling here (the letter names should go in order).`); }
+            else { st = 'near'; tips.push(`${val} is the right pitch, the same key on the piano. In this key the letter names must go in order, so it is spelled ${nm(e)}.`); }
+          }
         }
-        inp.classList.toggle('ok', ok); inp.classList.toggle('bad', !ok); if(!ok) wrong++;
+        inp.classList.toggle('ok', st==='ok'); inp.classList.toggle('near', st==='near'); inp.classList.toggle('bad', st==='bad');
+        if(st==='bad') red++; else if(st==='near') amber++;
       });
-      if(!wrong) return {ok:true, msg:o.explain||''};
-      return {ok:false, msg:`${wrong} of ${cells.length} need another look (red). ${spell[0]||''}`};
+      if(!red && !amber) return {ok:true, msg:(o.explain||'') + (notes.length ? ' <br><i>Note: ' + notes[0] + '</i>' : '')};
+      return {ok:false, msg:(red ? `${red} of ${cells.length} need another look (red). ` : '') + (amber ? `${amber} amber box${amber>1?'es have':' has'} the right pitch but the wrong spelling, so you are nearly there. ` : '') + (tips[0]||'')};
     },
-    reveal(){ cells.forEach(({inp,c}) => { inp.value = show(c.expect); inp.classList.remove('bad'); inp.classList.add('ok'); }); },
+    reveal(){ cells.forEach(({inp,c}) => { inp.value = show(c.expect); inp.classList.remove('bad','near'); inp.classList.add('ok'); }); },
     lock(){ cells.forEach(({inp}) => inp.readOnly = true); },
   };
 }
@@ -717,7 +771,8 @@ function qTS(o, api){
       b.dataset.v = ''; btns.push({b, exp}); row.append(b);
     }
   });
-  const el = h('div',{style:'display:flex;flex-direction:column;gap:12px'}, h('div',{html:o.prompt}), o.listen ? h('div',{class:'row'}, Listen('Hear it', o.listen)) : null, row,
+  const kb = Keyboard({}); kb.setMarks(noteMarks(o.notes, 60, null, true));
+  const el = h('div',{style:'display:flex;flex-direction:column;gap:12px'}, h('div',{html:o.prompt}), o.listen ? h('div',{class:'row'}, Listen('Hear it', o.listen)) : null, h('div',{class:'tscroll'}, row), h('div',{class:'kbref'}, kb.el),
     h('span',{class:'muted',style:'font-size:14px'}, 'Tap each box to cycle between T (tone) and S (semitone).'));
   return { el, hint:o.hint,
     check(){
@@ -939,7 +994,11 @@ function PivotFinder(){
   return h('div',{class:'card'}, sels, out);
 }
 /* ===== WIDGETS 2 ===== */
-const chordRoots = q => CIRCLE_ROOTS.filter(r => isClean(chordNotes(r,q)));
+/* Roots that match the circle of fifths: major-type chords use the major ring, minor-type chords the minor ring. Pass an array to get roots that suit every type. */
+const thirdOf = q => { const t = Q[q].iv.find(x => x[0]===2); return t ? t[1] : 4; };
+const chordRoots = q => { const qs = [].concat(q); let list = null;
+  qs.forEach(x => { const base = thirdOf(x)===3 ? CIRCLE_MIN : CIRCLE_MAJ; list = list ? list.filter(r => base.some(b => sameNote(b,r))) : base.slice(); });
+  return list.filter(r => qs.every(x => isClean(chordNotes(r,x)))); };
 const nonDia = (key, mode, notes) => notes.filter(n => !scaleNotes(key, mode).some(s => pc(s)===pc(n)));
 
 function ChordQualityLab(){
@@ -1108,7 +1167,7 @@ function Playground(){
 }
 /* ===== WIDGETS 3: extended chords ===== */
 const ROOTPREF = CIRCLE_ROOTS;
-const rootsOK = q => ROOTPREF.filter(r => isClean(chordNotes(r,q)));
+const rootsOK = q => chordRoots(q);
 function bigKb(){ return Keyboard({lo:48, hi:84}); }
 function showChord(kb, root, q){
   const ns = chordNotes(root,q); kb.setMarks(noteMarks(ns, 48, rolesOfQ(q), true)); return ns;
@@ -1185,6 +1244,30 @@ const joinN = ns => ns.map(nm).join(' ');
 const cleanKeys = (type, withChords) => rootsFor(type).filter(r => !withChords || diatonic(r,type,true).every(d => isClean(d.notes)));
 function listen(evsFn){ return () => playEvents(evsFn()); }
 function clip(specs, key, mode='major', beat=0.9){ const rs = specs.map(s => resolve(key,mode,s)); return progEvents(rs, beat); }
+/* Difficulty ladder: attempt 0 = natural key, 1 = a few accidentals, 2 = trickier. One-shot exercises use the middle tier. */
+const tierFor = (att, need) => need<=1 ? 1 : need===2 ? Math.min(att,1) : need>=4 ? (att<2?0:att<4?1:2) : Math.min(att,2);
+/* a shuffled run of types where every type appears, then the least-used fill the rest */
+function balSeq(types, n){ const seq = shuffle(types); while(seq.length<n){ const prev = seq[seq.length-1], cnt = t => seq.filter(x => x===t).length, m = Math.min(...types.map(cnt)); const c = types.filter(t => cnt(t)===m && t!==prev); seq.push(pick(c.length ? c : types.filter(t => t!==prev))); } return seq; }
+const inTier = (n, t) => t===0 ? n===0 : t===1 ? (n>=1&&n<=3) : n>=4;
+function lpick(a, n, type, list){
+  const acc = r => scaleNotes(r,type).filter(x => x.a!==0).length, t = tierFor(a,n);
+  for(const tt of [t, t===0?1:t-1, 1, 0, 2]){ const c = list.filter(r => inTier(acc(r),tt)); if(c.length) return pick(c); }
+  return pick(list);
+}
+function kpick(type, att, need, filt){ let rs = rootsFor(type); if(filt) rs = rs.filter(filt); return lpick(att, need, type, rs); }
+function lcpick(a, n, list, q){
+  const acc = r => chordNotes(r,q).filter(x => x.a!==0).length, t = tierFor(a,n);
+  for(const tt of [t, t===0?1:t-1, 1, 0, 2]){ const c = list.filter(r => inTier(acc(r),tt)); if(c.length) return pick(c); }
+  return pick(list);
+}
+/* chords: one natural, one with a few accidentals, one trickier */
+function cpicks(types){
+  const pool = []; types.forEach(q => chordRoots(q).forEach(r => pool.push({r,q})));
+  const a = p => chordNotes(p.r,p.q).filter(n => n.a!==0).length;
+  const tier = [pool.filter(p => a(p)===0), pool.filter(p => a(p)===1||a(p)===2), pool.filter(p => a(p)>=2 && nm(p.r).length>1)];
+  return tier.map((t,i) => pick(t.length ? t : pool));
+}
+const fifthIdx = (a,n) => pick([[0,1,11],[2,3,9,10],[4,5,6,7,8]][tierFor(a,n)]);
 function wrongOpts(correct, pool, n=3){ return shuffle(pool.filter(x => x !== correct)).slice(0,n); }
 function stepRow(notes, steps, hi){
   return h('div',{class:'tscroll'}, h('div',{class:'seq'}, notes.flatMap((n,i) => {
@@ -1204,7 +1287,7 @@ LESSONS.push({ id:'notes', unit:'u1', title:'Notes, semitones and tones', sub:'T
     L.add(IntervalExplorer());
     L.callout('Look at E to F and B to C. There is no black key between them, so those white-to-white neighbours are <b>semitones</b>. Everywhere else, two neighbouring white keys are a tone apart.', 'tip', 'Notice');
     L.ex({id:'gap', title:'Semitone or tone?', mastery:3,
-      make:() => { const s = Math.floor(Math.random()*12), d = pick([1,2]); return {s, d, a:60+s, b:60+s+d}; },
+      make:(att,n) => { const t = tierFor(att,n), s = t===0 ? pick([0,2,4,5,7,9,11]) : Math.floor(Math.random()*12), d = pick([1,2]); return {s, d, a:60+s, b:60+s+d}; },
       view:(q,api) => { const kb = Keyboard({lo:60,hi:76});
         kb.setMarks([{m:q.a,role:'r',label:SHARPS[mod(q.a,12)]},{m:q.b,role:'5',label:SHARPS[mod(q.b,12)]}]);
         return qChoice({prompt:`How big is the gap from <b>${SHARPS[mod(q.a,12)]}</b> up to <b>${SHARPS[mod(q.b,12)]}</b>?`, extra:kb.el, listen:[{label:'Hear the two notes', fn:() => playEvents([{t:0,midis:[q.a],dur:0.8,vel:0.4},{t:0.7,midis:[q.b],dur:1,vel:0.4}])}],
@@ -1218,11 +1301,11 @@ LESSONS.push({ id:'accidentals', unit:'u1', title:'Sharps and flats', sub:'Raisi
     L.callout('C♯ and D♭ are the same key on the piano. Two names for one sound. This is why the same black key can be spelled two ways, and why the <b>letter name</b> matters later when we spell scales.');
     L.p('Sharps and flats do not have to be black keys. E♯ is one semitone above E, and the next key up is F, a white key. So E♯ and F are the same key. The same goes for B♯ and C, and for F♭ and E, and C♭ and B.');
     L.ex({id:'mark', title:'Find it on the keyboard', mastery:3,
-      make:() => ({n:parseNote(pick(['A♭','B♭','F♭','C♭','G♯','A♯','E♯','B♯','D♭','F♯','E♭','G♭','D♯','C♯']))}),
+      make:(att,n) => ({n:parseNote(pick([['F♯','B♭','E♭','C♯','A♭','G♯'],['D♭','G♭','D♯','A♯'],['E♯','B♯','F♭','C♭']][tierFor(att,n)]))}),
       view:(q,api) => qKeys({prompt:`Mark the note <b>${nm(q.n)}</b> on the keyboard.`, targets:[q.n], hint:q.n.a>0?'A sharp is one key higher than the plain note.':'A flat is one key lower than the plain note.',
         explain:`${nm(q.n)} is the key ${SHARPS[pc(q.n)]}.`}, api)});
     L.ex({id:'same', title:'Same key, different name', mastery:2,
-      make:() => { const base = pick(['G♭','D♭','A♭','E♭','B♭','F♯','C♯','G♯','E♯','F♭','B♯','C♭']); return {n:parseNote(base)}; },
+      make:(att,n) => ({n:parseNote(pick([['B♭','E♭','F♯','C♯','A♭','G♯'],['D♭','G♭','D♯','A♯'],['E♯','B♯','F♭','C♭']][tierFor(att,n)]))}),
       view:(q,api) => { const targetPc = pc(q.n); const cands = KEYNAMES.filter(x => pc(x)===targetPc && !sameNote(x,q.n));
         const ans = cands[0]; const wr = shuffle(KEYNAMES.filter(x => pc(x)!==targetPc && Math.abs(x.a)<=1)).slice(0,3); const opts = shuffle([ans, ...wr]);
         return qChoice({prompt:`Which note is the same key on the piano as <b>${nm(q.n)}</b>?`, options:opts.map(nm), answer:opts.indexOf(ans), explain:`${nm(q.n)} and ${nm(ans)} are the same key.`}, api); }});
@@ -1234,18 +1317,18 @@ LESSONS.push({ id:'major', unit:'u2', title:'The major scale', sub:'Seven notes,
   build(L){
     L.p('A <b>scale</b> is a set of notes arranged from low to high, starting and ending on the same note name. There are many scales. We start with the most important one: the <b>major scale</b>.');
     L.p('To play C major, start on C and play the white notes up to the next C. Press play and listen. It should sound like the start of a familiar tune.');
-    L.add(ScaleLab({types:null, type:'major', root:parseNote('C'), id:'maj1'}));
-    L.p('Now look at the gaps between the notes. Most are tones (T), but two are semitones (S). Every major scale follows exactly the same pattern.');
-    L.callout('<b>Major scale:</b> <span class="mono">T T S T T T S</span>. Learn this. Everything else grows from it.');
+    L.add(ScaleLab({types:null, type:'major', root:parseNote('C'), id:'maj1', steps:false}));
+    L.p('Now look at the gaps between the notes. Most are tones (T), but two are semitones (S). Every major scale follows exactly the same pattern. Try the exercises below to work out what it is: the keyboard will help you count.');
     tsCount = 0;
-    L.ex({id:'ts', title:'Work out the gaps', mastery:2,
-      make:() => { const r = tsCount++===0 ? parseNote('C') : pick(rootsFor('major')); return {r, sc:scaleNotes(r,'major').concat([r])}; },
+    L.ex({id:'ts', title:'Work out the gaps', mastery:1,
+      make:(a,n) => { const r = kpick('major',a,n); return {r, sc:scaleNotes(r,'major').concat([r])}; },
       view:(q,api) => qTS({notes:q.sc, prompt:`These are the notes of <b>${nm(q.r)} major</b>. Put a T or an S between each pair.`, listen:() => playEvents(scaleEvents(q.sc.slice(0,7),60)),
         hint:'Use a keyboard: a semitone is the very next key, a tone skips one.', explain:'T T S T T T S, every time.'}, api)});
-    L.ex({id:'recall', title:'Which pattern?', mastery:2,
+    L.ex({id:'recall', title:'Which pattern?', mastery:1,
       make:() => ({}),
       view:(q,api) => { const opts = shuffle(['T T S T T T S','T S T T S T T','S T T S T T T','T T T S T T S']);
         return qChoice({prompt:'Which pattern of gaps makes a <b>major</b> scale?', options:opts, answer:opts.indexOf('T T S T T T S'), explain:'Tone, tone, semitone, tone, tone, tone, semitone.'}, api); }});
+    L.add(Gated(['major/ts','major/recall'], () => h('div',{}, h('div',{class:'callout'}, h('span',{class:'lbl'},'Key idea'), h('div',{html:'<b>Major scale:</b> <span class="mono">T T S T T T S</span>. Learn this. Everything else grows from it.'})), ScaleLab({types:null, type:'major', root:parseNote('C'), id:'maj1b'})), 'The major scale pattern will appear here once you have worked it out.'));
   }});
 
 LESSONS.push({ id:'anymajor', unit:'u2', title:'Building any major scale', sub:'A four-step method that always works.', exIds:['spell'],
@@ -1258,7 +1341,7 @@ LESSONS.push({ id:'anymajor', unit:'u2', title:'Building any major scale', sub:'
     L.add(ScaleLab({type:'major', root:parseNote('D'), id:'maj2'}));
     L.callout('Every letter name appears once. You will never see two Gs in a row or a missing letter. A♯ and B♭ sound the same but only one of them is right, depending on the key.', 'tip', 'Rule');
     L.ex({id:'spell', title:'Spell the scale', mastery:3,
-      make:() => ({r: pick(rootsFor('major').filter(r => !(r.l===0&&r.a===0)))}),
+      make:(a,n) => ({r: kpick('major',a,n)}),
       view:(q,api) => { const sc = scaleNotes(q.r,'major'); const all = sc.concat([q.r]);
         return qGrid({prompt:`Write the notes of <b>${nm(q.r)} major</b>. The first note is given.`, cols:['1','2','3','4','5','6','7','8'], rowLabels:false,
           rows:[{cells: all.map((n,i) => i===0 ? {pre:nm(n)} : {expect:n})}], listen:[{label:'Hear it to check', fn:() => playEvents(scaleEvents(sc,60))}],
@@ -1269,23 +1352,23 @@ let ts2 = 0;
 LESSONS.push({ id:'minor', unit:'u2', title:'The natural minor scale', sub:'The same seven letters with a different pattern and a different mood.', exIds:['ts','spell','ear'],
   build(L){
     L.p('The second scale is the <b>natural minor</b>. To play A natural minor, start on A and play the white notes up to the next A. Compare it with C major.');
-    L.add(ScaleLab({types:['major','minor'], type:'minor', root:parseNote('A'), id:'min1'}));
-    L.callout('<b>Natural minor:</b> <span class="mono">T S T T S T T</span><br><b>Major:</b> <span class="mono">T T S T T T S</span><br>The semitones sit in different places, and that changes the whole feel: major sounds bright, minor sounds darker.');
-    L.p('The method for building any minor scale is the same four steps as before. Only the pattern changes.');
+    L.add(ScaleLab({types:['major','minor'], type:'minor', root:parseNote('A'), id:'min1', steps:false}));
+    L.p('The semitones sit in different places in a minor scale, and that changes the whole feel: major sounds bright, minor sounds darker. The method for building any minor scale is the same four steps as before. Only the pattern changes, and you can work it out yourself below.');
     ts2 = 0;
-    L.ex({id:'ts', title:'Work out the gaps', mastery:2,
-      make:() => { const r = ts2++===0 ? parseNote('A') : pick(rootsFor('minor')); return {r, sc:scaleNotes(r,'minor').concat([r])}; },
+    L.ex({id:'ts', title:'Work out the gaps', mastery:1,
+      make:(a,n) => { const r = kpick('minor',a,n); return {r, sc:scaleNotes(r,'minor').concat([r])}; },
       view:(q,api) => qTS({notes:q.sc, prompt:`These are the notes of <b>${nm(q.r)} natural minor</b>. Put a T or an S between each pair.`, listen:() => playEvents(scaleEvents(q.sc.slice(0,7),60)), explain:'T S T T S T T.'}, api)});
     L.ex({id:'spell', title:'Spell the minor scale', mastery:3,
-      make:() => ({r: pick(rootsFor('minor').filter(r => !(r.l===5&&r.a===0)))}),
+      make:(a,n) => ({r: kpick('minor',a,n)}),
       view:(q,api) => { const sc = scaleNotes(q.r,'minor'); const all = sc.concat([q.r]);
         return qGrid({prompt:`Write the notes of <b>${nm(q.r)} natural minor</b>. The first note is given.`, cols:['1','2','3','4','5','6','7','8'], rowLabels:false,
           rows:[{cells: all.map((n,i) => i===0 ? {pre:nm(n)} : {expect:n})}], listen:[{label:'Hear it to check', fn:() => playEvents(scaleEvents(sc,60))}],
           hint:'Use T S T T S T T and keep the letters in order.', explain:`${nm(q.r)} minor has ${sigText(q.r,'minor')}.`}, api); }});
     L.ex({id:'ear', title:'Major or minor?', mastery:3,
-      make:() => ({r:pick(rootsFor('major')), t:pick(['major','minor'])}),
+      make:(a,n) => { const t = pick(['major','minor']); return {r:kpick(t,a,n), t}; },
       view:(q,api) => qChoice({prompt:'Listen to this scale. Does it sound major or minor?', listen:[{label:'Play scale', fn:() => playEvents(scaleEvents(scaleNotes(q.r,q.t),60))}],
         options:['Major','Minor'], answer:q.t==='major'?0:1, explain:`That was ${nm(q.r)} ${q.t}.`, hint:'Major sounds bright and open. Minor sounds darker.'}, api)});
+    L.add(Gated(['minor/ts','minor/spell'], () => h('div',{class:'callout'}, h('span',{class:'lbl'},'Key idea'), h('div',{html:'<b>Natural minor:</b> <span class="mono">T S T T S T T</span><br><b>Major:</b> <span class="mono">T T S T T T S</span><br>Same seven letters, but the semitones sit in different places.'})), 'The natural minor pattern will appear here once you have worked it out.'));
   }});
 
 LESSONS.push({ id:'keys', unit:'u2', title:'Keys and key signatures', sub:'A key is a home note plus the scale that goes with it.', exIds:['sig','rel'],
@@ -1296,12 +1379,12 @@ LESSONS.push({ id:'keys', unit:'u2', title:'Keys and key signatures', sub:'A key
     L.add(CircleOfFifths());
     L.callout('Neighbours on the circle share six of their seven notes. We will use that when we change key later.');
     L.ex({id:'sig', title:'Count the sharps or flats', mastery:3,
-      make:() => ({r:pick(rootsFor('major').filter(r => isClean(scaleNotes(r,'major'))))}),
+      make:(a,n) => ({r:kpick('major',a,n,r => isClean(scaleNotes(r,'major')))}),
       view:(q,api) => { const ans = sigText(q.r,'major'); const pool = ['no sharps or flats','1 sharp','2 sharps','3 sharps','4 sharps','1 flat','2 flats','3 flats','4 flats','5 flats','6 flats','5 sharps','6 sharps','7 sharps'];
         const opts = shuffle([ans, ...wrongOpts(ans,pool,3)]);
         return qChoice({prompt:`How many sharps or flats does <b>${nm(q.r)} major</b> have?`, options:opts, answer:opts.indexOf(ans), explain:`${nm(q.r)} major: ${scaleNotes(q.r,'major').map(nm).join(' ')}.`}, api); }});
     L.ex({id:'rel', title:'Find the relative minor', mastery:3,
-      make:() => ({r:pick(rootsFor('major').filter(r => isClean(scaleNotes(relMinor(r),'minor'))))}),
+      make:(a,n) => ({r:kpick('major',a,n,r => isClean(scaleNotes(relMinor(r),'minor')))}),
       view:(q,api) => { const ans = relMinor(q.r); const wr = shuffle(CIRCLE_MIN.filter(x => !sameNote(x,ans))).slice(0,3); const opts = shuffle([ans,...wr]);
         return qChoice({prompt:`What is the relative minor of <b>${nm(q.r)} major</b>?`, hint:'Count up to the 6th note of the major scale.', options:opts.map(n => nm(n)+' minor'), answer:opts.indexOf(ans), explain:`The 6th note of ${nm(q.r)} major is ${nm(ans)}.`}, api); }});
   }});
@@ -1313,12 +1396,11 @@ LESSONS.push({ id:'triads', unit:'u3', title:'Triads: stacking the scale', sub:'
     L.p('To build a triad, take a scale, then take the <b>1st, 3rd and 5th notes</b>. In other words, play every other note until you have three. D minor is the 1st, 3rd and 5th notes of the D minor scale.');
     L.add(ChordStacker({root:parseNote('C'), mode:'major', deg:0, modeSwitch:true}));
     L.p('The three notes have names you will see everywhere: the 1st is the <b>root</b>, the 3rd is the <b>third</b>, and the 5th is the <b>fifth</b>. We colour them the same way on every keyboard in this course.');
-    L.ex({id:'spell', title:'Spell the triad', mastery:3,
-      make:() => { const pool = []; chordRoots('maj').forEach(r => pool.push({r,q:'maj'})); chordRoots('min').forEach(r => pool.push({r,q:'min'}));
-        const picks = shuffle(pool).slice(0,3); return {picks}; },
+    L.ex({id:'spell', title:'Spell the triad', mastery:1,
+      make:() => ({picks:cpicks(['maj','min'])}),
       view:(q,api) => qGrid({prompt:'Write the three notes in each triad.', cols:['Root','Third','Fifth'],
         rows:q.picks.map(p => ({label:`${nm(p.r)} ${p.q==='maj'?'major':'minor'}`, cells:chordNotes(p.r,p.q).map(n => ({expect:n}))})),
-        hint:'Build the scale first (major or minor), then take the 1st, 3rd and 5th.', explain:'1st, 3rd and 5th of the scale.', listen:null}, api)});
+        lenient:true, hint:'Build the scale first (major or minor), then take the 1st, 3rd and 5th.', explain:'1st, 3rd and 5th of the scale.', listen:null}, api)});
   }});
 
 LESSONS.push({ id:'quality', unit:'u3', title:'Major, minor and diminished', sub:'Why some chords sound happy, some sad and some tense.', exIds:['ear','write'],
@@ -1328,40 +1410,50 @@ LESSONS.push({ id:'quality', unit:'u3', title:'Major, minor and diminished', sub
     L.add(ChordQualityLab());
     L.h2('Writing chords');
     L.p('To save space on a chord chart you only write the letter for a major chord, and add a small <b>m</b> for minor. A diminished chord is written with a small circle (B° or Bdim). So G major, A minor, D major, E minor is written <b>G, Am, D, Em</b>.');
-    L.ex({id:'ear', title:'Name the chord by ear', mastery:3,
-      make:() => ({r:pick(chordRoots('dim')), q:pick(['maj','min','dim'])}),
+    let earSeq = null;
+    L.ex({id:'ear', title:'Name the chord by ear', mastery:5,
+      make:(a,n) => { if(a===0 || !earSeq) earSeq = balSeq(['maj','min','dim'], n); return {r:lcpick(a,n,chordRoots(['maj','min','dim']),'dim'), q:earSeq[a % n]}; },
       view:(q,api) => qChoice({prompt:'Listen. Is this chord major, minor or diminished?', listen:[{label:'Play chord', fn:() => { const c = chordEvent(chordNotes(q.r,q.q),0,1.8,null,0); playEvents([c.ev]); }}],
         options:['Major','Minor','Diminished'], answer:['maj','min','dim'].indexOf(q.q), hint:'Major is bright. Minor is darker. Diminished is tense and wobbly.', explain:`That was ${chordSym(q.r,q.q)}.`}, api)});
-    L.ex({id:'write', title:'Write the chord symbol', mastery:3,
-      make:() => ({picks:shuffle(chordRoots('maj').flatMap(r => ['maj','min'].map(q => ({r,q})))).slice(0,3)}),
+    L.ex({id:'write', title:'Write the chord symbol', mastery:1,
+      make:() => ({picks:cpicks(['maj','min'])}),
       view:(q,api) => qGrid({kind:'chord', prompt:'These notes are a triad. What is the chord called? Write it the way you would on a chord chart.', cols:['Chord'],
-        rows:q.picks.map(p => ({label:joinN(chordNotes(p.r,p.q)), cells:[{expect:{root:p.r,q:p.q}}]})),
+        rows:q.picks.map(p => ({label:joinN(chordNotes(p.r,p.q)), show:chordNotes(p.r,p.q), cells:[{expect:{root:p.r,q:p.q}}]})),
         hint:'Is the gap from the first to the second note 4 or 3 semitones? 4 means major, 3 means minor.', explain:'Major chords are just the letter. Minor chords add m.'}, api)});
   }});
 
 /* ---------- Harmony in a key ---------- */
 LESSONS.push({ id:'harmonise', unit:'u4', title:'A chord for every note', sub:'Build a triad on each note of the scale.', exIds:['tbl','pattern'],
   build(L){
-    L.p('Each note of a scale can be the root of its own triad, using only notes from that same scale. This is called <b>harmonising the scale</b>. The recipe never changes:');
+    L.p('Each note of a scale can be the root of its own triad, using only notes from that same scale. This is called <b>harmonising the scale</b>, and the chords you get are known as <b>diatonic harmony</b>. “Diatonic” simply means “belonging to the key”: every chord is built only from that key’s own notes. The recipe never changes:');
     L.callout('For each note in the scale: take that note, count up two notes in the scale for the third, then two more for the fifth. Then work out whether the chord is major, minor or something else.');
     L.p('Pick a key and tap through the seven chords. They use only the notes of the scale, so every chord belongs to the key.');
     L.add(ChordStacker({root:parseNote('C'), mode:'major', deg:0}));
     L.p('If you did this in every major key you would see the same pattern each time:');
     L.add(h('div',{class:'tscroll'}, h('table',{class:'tb'}, h('thead',{}, h('tr',{}, ['I','ii','iii','IV','V','vi','vii°'].map(x => h('th',{}, x)))), h('tbody',{}, h('tr',{}, ['major','minor','minor','major','major','minor','diminished'].map(x => h('td',{}, x)))))));
-    L.p('That pattern is the reason a handful of chords covers so much music, and why you can move a song to any key.');
+    L.p('That pattern is the reason a handful of chords covers so much music, and why you can move a song to any key. Whenever someone talks about the <b>diatonic chords</b> of a key, these seven are what they mean.');
     L.ex({id:'tbl', title:'Name every chord in the key', mastery:2,
-      make:() => ({k:pick(cleanKeys('major',false).filter(r => diatonic(r,'major').every(d => isClean(d.notes))))}),
+      make:(a,n) => ({k:lpick(a,n,'major',cleanKeys('major',false).filter(r => diatonic(r,'major').every(d => isClean(d.notes))))}),
       view:(q,api) => { const dn = diatonic(q.k,'major'); return qGrid({kind:'chord', prompt:`Write the seven chords of <b>${nm(q.k)} major</b>. Use <b>m</b> for minor and <b>°</b> for diminished.`, cols:['I','ii','iii','IV','V','vi','vii°'], rowLabels:false,
         rows:[{cells:dn.map(d => ({expect:{root:d.root,q:d.q}}))}], hint:'Scale notes first. Then 1-3-5, 2-4-6, 3-5-7 and so on. Remember: major, minor, minor, major, major, minor, diminished.', explain:dn.map(d => d.sym).join('  ')}, api); }});
-    L.ex({id:'pattern', title:'Remember the pattern', mastery:2,
+    L.ex({id:'pattern', title:'Remember the pattern', mastery:1,
       make:() => ({}),
       view:(q,api) => { const opts = shuffle(['ii, iii and vi','I, IV and V','ii, IV and vi','iii, V and vii°']);
         return qChoice({prompt:'In a major key, which chords are minor?', options:opts, answer:opts.indexOf('ii, iii and vi'), explain:'ii, iii and vi are minor. I, IV and V are major. vii° is diminished.'}, api); }});
   }});
 
 function numeralMix(mode){
+  let used = [];
   return { id:'mix', title:'Numerals and chords', mastery:3,
-    make:() => { const key = pick(rootsFor(mode).filter(r => diatonic(r,mode).every(d => isClean(d.notes)))); return {key, dn:diatonic(key,mode), i:Math.floor(Math.random()*7), dir:Math.random()<0.5}; },
+    make:(a,n) => {
+      const key = lpick(a,n,mode,rootsFor(mode).filter(r => diatonic(r,mode).every(d => isClean(d.notes)))), dn = diatonic(key,mode);
+      used = used.slice(0,a);                       // only the questions already passed count
+      const qs = used.map(i => dn[i].q), remaining = n - a;
+      const missing = ['maj','min'].filter(x => !qs.includes(x));
+      let cand = [0,1,2,3,4,5,6].filter(i => !used.includes(i));
+      if(missing.length >= remaining){ const want = pick(missing); cand = cand.filter(i => dn[i].q === want); }
+      const i = pick(cand.length ? cand : [0,1,2,3,4,5,6]); used[a] = i;
+      return {key, dn, i, dir:Math.random()<0.5}; },
     view:(q,api) => { const roms = q.dn.map(d => romanOf(d.spec,mode)); const idx = shuffle([0,1,2,3,4,5,6].filter(x => x!==q.i)).slice(0,3).concat(q.i); const opts = shuffle(idx);
       return q.dir
         ? qChoice({prompt:`In <b>${nm(q.key)} ${mode}</b>, which chord is <b>${roms[q.i]}</b>?`, options:opts.map(x => q.dn[x].sym), answer:opts.indexOf(q.i), explain:`${roms[q.i]} is the chord on the ${q.i+1}${['st','nd','rd'][q.i]||'th'} note.`}, api)
@@ -1370,7 +1462,7 @@ function numeralMix(mode){
 const MAJ_ROW = [S(0,'maj'),S(1,'min'),S(2,'min'),S(3,'maj'),S(4,'maj'),S(5,'min'),S(6,'dim')];
 LESSONS.push({ id:'numerals', unit:'u4', title:'Roman numerals', sub:'A way to name chords that works in every key.', exIds:['mix'],
   build(L){
-    L.p('Musicians label the chords of a key with <b>Roman numerals</b>: I for the chord on the 1st note, II for the 2nd, and so on. <b>Capitals are major, small letters are minor</b>, and a small circle marks diminished.');
+    L.p('Musicians label the chords of a key with <b>Roman numerals</b>: I for the chord on the 1st note, ii for the 2nd, iii for the 3rd, and so on. <b>Capitals are major, small letters are minor</b>, and a small circle marks diminished.');
     L.p('Change the key below and watch the chord names change while the numerals stay put.');
     L.add(ProgPlayer({specs:MAJ_ROW, mode:'major', id:'num', notes:true, caption:(k) => `In ${nm(k)} major.`}));
     L.callout('A numeral describes a chord’s <b>job inside a key</b>, not its name. “V” always means the chord on the 5th note, whichever key you are in.');
@@ -1390,12 +1482,13 @@ LESSONS.push({ id:'progressions', unit:'u4', title:'Progressions and transposing
     L.p('This is why numerals matter for singers. If a song is too high, the band does not rewrite anything. They keep the numerals and move to a key that fits the voice.');
     L.wild('<b>I – V – vi – IV:</b> “Let It Be” (C G Am F) and “With or Without You” (D A Bm G).<br><b>I – vi – IV – V:</b> “Stand By Me” (A F♯m D E).');
     L.ex({id:'transpose', title:'Transpose a progression', mastery:2,
-      make:() => ({k:pick(rootsFor('major').filter(r => diatonic(r,'major').every(d => isClean(d.notes)))), p:pick(PRESETS)}),
+      sig:q => q.p.name,
+      make:(a,n) => ({k:lpick(a,n,'major',rootsFor('major').filter(r => diatonic(r,'major').every(d => isClean(d.notes)))), p:pick(PRESETS)}),
       view:(q,api) => { const rs = q.p.specs.map(s => resolve(q.k,'major',s));
         return qGrid({kind:'chord', prompt:`Write <b>${q.p.name}</b> in the key of <b>${nm(q.k)} major</b>.`, cols:q.p.specs.map(s => romanOf(s,'major')), rowLabels:false,
           rows:[{cells:rs.map(r => ({expect:{root:r.root,q:r.q}}))}], listen:[{label:'Hear the answer', fn:() => playEvents(progEvents(rs,0.9))}], hint:'Find the chord for each numeral in the key. Remember ii, iii and vi are minor.', explain:rs.map(r=>r.sym).join('  ')}, api); }});
-    L.ex({id:'deduce', title:'Find the numerals', mastery:2,
-      make:() => ({k:pick(rootsFor('major').filter(r => diatonic(r,'major').every(d => isClean(d.notes)))), p:pick(PRESETS)}),
+    L.ex({id:'deduce', title:'Find the numerals', mastery:2, sig:q => q.p.name,
+      make:(a,n) => ({k:lpick(a,n,'major',rootsFor('major').filter(r => diatonic(r,'major').every(d => isClean(d.notes)))), p:pick(PRESETS)}),
       view:(q,api) => { const rs = q.p.specs.map(s => resolve(q.k,'major',s)); const opts = shuffle(PRESETS.map(p => p.name)); const ans = q.p.name;
         return qChoice({prompt:`A song in <b>${nm(q.k)} major</b> uses <b>${rs.map(r=>r.sym).join(' – ')}</b>. Which numerals is that?`, options:opts, answer:opts.indexOf(ans), explain:`Yes: ${ans}.`}, api); }});
   }});
@@ -1403,19 +1496,21 @@ LESSONS.push({ id:'progressions', unit:'u4', title:'Progressions and transposing
 /* ---------- Sevenths ---------- */
 LESSONS.push({ id:'sevenths', unit:'u5', title:'Adding the seventh', sub:'One more note on the stack for extra colour.', exIds:['spell','ear'],
   build(L){
-    L.p('Every triad can grow into a <b>seventh chord</b> by adding the note a third above the fifth. There are four types to know. They all come from a triad plus either a major third (4 semitones) or a minor third (3 semitones) on top.');
+    L.p('Every triad can grow into a <b>seventh chord</b> by adding one more note on top. There are four types to know. They all come from a triad plus a seventh note, and there are only two choices for that note: the <b>major 7th</b> (just one semitone below the octave) or the <b>flat 7th</b> (♭7, a tone below the octave).');
+    L.p('Two ways of thinking about it, and both are useful. <b>Building</b>: stack another third on top of the fifth. <b>Reading</b>: ask how far the seventh sits from the root. In practice, the second way is the one musicians use, because a chord symbol tells you straight away: <b>C7 has a B♭ (flat 7th)</b>, <b>Cmaj7 has a B (major 7th)</b>.');
     L.add(SeventhLab());
-    L.add(h('div',{class:'tscroll'}, h('table',{class:'tb'}, h('thead',{}, h('tr',{}, ['Name','Triad','7th above the 5th','Written'].map(x => h('th',{}, x)))),
-      h('tbody',{}, [['Major 7th','major','major third','C△ / Cmaj7'],['Minor 7th','minor','minor third','Cm7'],['Dominant 7th','major','minor third','C7'],['Minor major 7th','minor','major third','Cm△']].map(r => h('tr',{}, r.map(x => h('td',{}, x))))))));
+    L.add(h('div',{class:'tscroll'}, h('table',{class:'tb'}, h('thead',{}, h('tr',{}, ['Name','Triad','Seventh note','Written'].map(x => h('th',{}, x)))),
+      h('tbody',{}, [['Major 7th','major','major 7th (B in C)','C△ / Cmaj7'],['Minor 7th','minor','flat 7th (B♭ in C)','Cm7'],['Dominant 7th','major','flat 7th (B♭ in C)','C7'],['Minor major 7th','minor','major 7th (B in C)','Cm△']].map(r => h('tr',{}, r.map(x => h('td',{}, x))))))));
     L.callout('Two chords carry the major triad: the <b>major 7th</b> (dreamy, soft) and the <b>dominant 7th</b> (bluesy, restless). The only difference is the top note: the major 7th sits a semitone below the octave, the dominant 7th a tone below.');
     L.wild('The 12-bar blues (think “Hound Dog” or “Johnny B. Goode”) is built on I, IV and V, and is commonly played with dominant 7ths.');
-    L.ex({id:'spell', title:'Spell the seventh chord', mastery:3,
-      make:() => { const q = pick(['maj7','m7','dom7','mmaj7']); return {q, r:pick(chordRoots(q))}; },
+    L.ex({id:'spell', title:'Spell the seventh chord', mastery:3, sig:q => q.q,
+      make:(a,n) => { const q = pick(['maj7','m7','dom7','mmaj7']); return {q, r:lcpick(a,n,chordRoots(q),q)}; },
       view:(q,api) => qGrid({prompt:`Write the four notes of <b>${chordSym(q.r,q.q)}</b> (${Q[q.q].name}).`, cols:['Root','3rd','5th','7th'], rowLabels:false,
-        rows:[{cells:chordNotes(q.r,q.q).map(n => ({expect:n}))}], listen:[{label:'Hear it to check', fn:() => { const c = chordEvent(chordNotes(q.r,q.q),0,1.8,null,0); playEvents([c.ev]); }}],
-        hint:q.q==='maj7'?'Major triad, then a semitone below the octave.':q.q==='m7'?'Minor triad, then a tone below the octave.':q.q==='dom7'?'Major triad, then a tone below the octave.':'Minor triad, then a semitone below the octave.', explain:'Triad plus the 7th.'}, api)});
-    L.ex({id:'ear', title:'Hear the seventh', mastery:3,
-      make:() => { const q = pick(['maj7','m7','dom7']); return {q, r:pick(chordRoots(q))}; },
+        lenient:true, rows:[{cells:chordNotes(q.r,q.q).map(n => ({expect:n}))}], listen:[{label:'Hear it to check', fn:() => { const c = chordEvent(chordNotes(q.r,q.q),0,1.8,null,0); playEvents([c.ev]); }}],
+        hint:q.q==='maj7'?'Major triad, then the major 7th (a semitone below the octave).':q.q==='m7'?'Minor triad, then the flat 7th (a tone below the octave).':q.q==='dom7'?'Major triad, then the flat 7th (a tone below the octave).':'Minor triad, then the major 7th (a semitone below the octave).', explain:'Triad plus the 7th. (Spelling tip: the 3rd of G♯7 is B♯, which sounds the same as C.)'}, api)});
+    let sevSeq = null;
+    L.ex({id:'ear', title:'Hear the seventh', mastery:5,
+      make:(a,n) => { if(a===0 || !sevSeq) sevSeq = balSeq(['maj7','m7','dom7'], n); const q = sevSeq[a % n]; return {q, r:lcpick(a,n,chordRoots(q),q)}; },
       view:(q,api) => qChoice({prompt:'Listen to this chord. Which seventh is it?', listen:[{label:'Play chord', fn:() => { const c = chordEvent(chordNotes(q.r,q.q),0,2,null,0); playEvents([c.ev]); }}],
         options:['Major 7th','Minor 7th','Dominant 7th'], answer:['maj7','m7','dom7'].indexOf(q.q), hint:'Major 7th: dreamy. Minor 7th: mellow. Dominant 7th: bluesy and wanting to move.', explain:`That was ${chordSym(q.r,q.q)}.`}, api)});
   }});
@@ -1426,11 +1521,11 @@ LESSONS.push({ id:'diatonic7', unit:'u5', title:'Sevenths inside a key', sub:'St
     L.add(ChordStacker({root:parseNote('C'), mode:'major', deg:0, sev:true, sevSwitch:true}));
     L.add(h('div',{class:'tscroll'}, h('table',{class:'tb'}, h('thead',{}, h('tr',{}, ['I','ii','iii','IV','V','vi','vii'].map(x => h('th',{}, x)))), h('tbody',{}, h('tr',{}, ['maj7','m7','m7','maj7','7','m7','m7♭5'].map(x => h('td',{}, x)))))));
     L.callout('The <b>dominant 7th</b> appears on <b>V only</b>. That is what makes V7 special, and why it is so good at pulling the music home. The seventh chord on vii is <b>half-diminished</b> (m7♭5, sometimes written ø).');
-    L.ex({id:'name7', title:'Name the seventh chords', mastery:2,
-      make:() => { const k = pick(cleanKeys('major',true)); const degs = shuffle([0,1,2,3,4,5]).slice(0,4).sort(); return {k, degs}; },
+    L.ex({id:'name7', title:'Name the seventh chords', mastery:2, sig:q => q.degs.join(),
+      make:(a,n) => { const k = lpick(a,n,'major',cleanKeys('major',true)); const degs = shuffle([0,1,2,3,4,5]).slice(0,4).sort(); return {k, degs}; },
       view:(q,api) => { const dn = diatonic(q.k,'major',true); return qGrid({kind:'chord', prompt:`Write these seventh chords in <b>${nm(q.k)} major</b>.`, cols:q.degs.map(d => romanOf(dn[d].spec,'major')), rowLabels:false,
         rows:[{cells:q.degs.map(d => ({expect:{root:dn[d].root,q:dn[d].q}}))}], hint:'Take every other note from the scale: 1, 3, 5, 7 from each starting note. Major, minor, minor, major, DOMINANT, minor.', explain:q.degs.map(d => dn[d].sym).join('  ')}, api); }});
-    L.ex({id:'which', title:'Where does the dominant 7th live?', mastery:2,
+    L.ex({id:'which', title:'Where does the dominant 7th live?', mastery:1,
       make:() => ({}), view:(q,api) => { const opts = shuffle(['V','I','IV','ii']);
         return qChoice({prompt:'In a major key, which chord of the scale becomes a <b>dominant</b> 7th when you stack a seventh on top?', options:opts, answer:opts.indexOf('V'), explain:'Only V. That is why it is called the dominant chord.'}, api); }});
   }});
@@ -1460,12 +1555,13 @@ LESSONS.push({ id:'function', unit:'u6', title:'Tonic, sub-dominant, dominant', 
     L.p('The pull is strongest when you add the seventh. The dominant 7th (V7) contains an unstable pair of notes that both want to move by a step to notes of the tonic chord. Listen to the difference between resolving and not resolving.');
     L.add(GravityDemo());
     L.callout('The most common journey in popular music is <b>Tonic → Sub-dominant → Dominant → Tonic</b>, for example I – IV – V – I. Home, away, tension, home.');
-    L.ex({id:'classify', title:'Name the job', mastery:3,
-      make:() => ({d:pick([0,1,3,4,5,6])}),
+    let jobSeq = null;
+    L.ex({id:'classify', title:'Name the job', mastery:5,
+      make:(a,n) => { if(a===0 || !jobSeq){ const T=[0,5],S_=[1,3],D=[4,6]; const first=[pick(T),pick(S_),pick(D)]; const rest=shuffle([0,1,3,4,5,6].filter(x => !first.includes(x))).slice(0,Math.max(0,n-3)); jobSeq = shuffle(first.concat(rest)); } return {d:jobSeq[a % jobSeq.length]}; },
       view:(q,api) => { const roms = ['I','ii','iii','IV','V','vi','vii°']; const names = ['Tonic','Sub-dominant','Dominant']; const ans = {T:0,S:1,D:2}[FN_MAJ[q.d]];
         return qChoice({prompt:`In a major key, what is the function of <b>${roms[q.d]}</b>?`, options:names, answer:ans, hint:'Tonic: I, vi. Sub-dominant: IV, ii. Dominant: V, vii°.', explain:`${roms[q.d]} is a ${names[ans].toLowerCase()} chord.`}, api); }});
-    L.ex({id:'finished', title:'Which one sounds finished?', mastery:2,
-      make:() => ({k:pick(rootsFor('major').filter(r => diatonic(r,'major').every(d => isClean(d.notes)))), first:Math.random()<0.5}),
+    L.ex({id:'finished', title:'Which one sounds finished?', mastery:1,
+      make:(a,n) => ({k:lpick(a,n,'major',rootsFor('major').filter(r => diatonic(r,'major').every(d => isClean(d.notes)))), first:Math.random()<0.5}),
       view:(q,api) => { const done = [S(0,'maj'),S(3,'maj'),S(4,'dom7'),S(0,'maj')], hang = [S(0,'maj'),S(3,'maj'),S(4,'dom7')];
         const A = q.first ? done : hang, B = q.first ? hang : done;
         return qChoice({prompt:'Two clips follow the same path. Which one sounds finished?', listen:[{label:'Clip 1', fn:() => playEvents(clip(A,q.k))},{label:'Clip 2', fn:() => playEvents(clip(B,q.k))}],
@@ -1484,12 +1580,13 @@ LESSONS.push({ id:'cadences', unit:'u6', title:'Cadences: how phrases end', sub:
     L.p('A <b>cadence</b> is the pair of chords that ends a phrase, like punctuation in a sentence. The functions you just learned decide what kind of ending you get. Try each one and listen to the last two chords.');
     L.add(ProgTabs({id:'cad', tabs:CADS.map(c => ({name:c.name, specs:c.specs, desc:c.desc, fnColour:true}))}));
     L.wild('<b>“Hallelujah”</b> (Leonard Cohen) moves F – G – Am – F in C, so the V goes to vi: a deceptive cadence.<br><b>“Autumn Leaves”</b> opens with a ii – V – I (Am7 – D7 – Gmaj7 in G).');
-    L.ex({id:'ear', title:'Name the cadence by ear', mastery:3,
-      make:() => ({k:pick(rootsFor('major').filter(r => diatonic(r,'major').every(d => isClean(d.notes)))), c:Math.floor(Math.random()*4)}),
+    let cadSeq = null;
+    L.ex({id:'ear', title:'Name the cadence by ear', mastery:3, sig:q => q.c,
+      make:(a,n) => { if(a===0 || !cadSeq) cadSeq = shuffle([0,1,2,3]); return {k:parseNote('C'), c:cadSeq[a % 4]}; },
       view:(q,api) => qChoice({prompt:'Listen to the phrase. How does it end?', listen:[{label:'Play phrase', fn:() => playEvents(clip(CADS[q.c].specs, q.k))}],
         options:CADS.slice(0,4).map(c => c.name), answer:q.c, hint:'Ends on home? Authentic or plagal. Left hanging? Half. Surprise? Deceptive.', explain:CADS[q.c].desc.replace(/<\/?b>/g,'')}, api)});
     L.ex({id:'def', title:'Name the ending', mastery:3,
-      make:() => ({c:Math.floor(Math.random()*4)}),
+      make:() => ({c:Math.floor(Math.random()*4)}), sig:q => q.c,
       view:(q,api) => { const k = parseNote('C'); const rs = CADS[q.c].specs.map(s => resolve(k,'major',s)); const last = rs.slice(-2).map(r => r.roman).join(' → ');
         return qChoice({prompt:`A phrase in a major key ends with <b>${q.c===2 ? 'vi → IV → V, finishing on V' : last}</b>. What is this cadence?`, options:CADS.slice(0,4).map(c => c.name), answer:q.c, explain:CADS[q.c].desc.replace(/<\/?b>/g,'')}, api); }});
   }});
@@ -1505,7 +1602,7 @@ LESSONS.push({ id:'minorchords', unit:'u7', title:'Chords of a minor key', sub:'
     L.add(ProgPlayer({specs:MIN_ROW, mode:'minor', key:parseNote('A'), id:'mc', notes:true, fnColour:false, caption:() => 'Tap any chord. In a minor key, i is home, iv is the sub-dominant and v (or V) is the dominant.'}));
     L.wild('<b>“Zombie”</b> (The Cranberries) is Em – C – G – D in E minor: i – VI – III – VII.');
     L.ex({id:'tbl', title:'Name every chord', mastery:2,
-      make:() => ({k:pick(rootsFor('minor').filter(r => diatonic(r,'minor').every(d => isClean(d.notes))))}),
+      make:(a,n) => ({k:lpick(a,n,'minor',rootsFor('minor').filter(r => diatonic(r,'minor').every(d => isClean(d.notes))))}),
       view:(q,api) => { const dn = diatonic(q.k,'minor'); return qGrid({kind:'chord', prompt:`Write the seven chords of <b>${nm(q.k)} natural minor</b>.`, cols:['i','ii°','III','iv','v','VI','VII'], rowLabels:false,
         rows:[{cells:dn.map(d => ({expect:{root:d.root,q:d.q}}))}], hint:'Minor, diminished, major, minor, minor, major, major.', explain:dn.map(d=>d.sym).join('  ')}, api); }});
     L.ex(numeralMix('minor'));
@@ -1524,17 +1621,17 @@ LESSONS.push({ id:'harmonic', unit:'u7', title:'Harmonic minor and the major V',
     ]}));
     L.wild('<b>“House of the Rising Sun”</b> moves Am – C – D – F – Am – E. The last chord, E major, is the major V of A minor, made possible by the raised 7th (G♯).');
     L.ex({id:'spell', title:'Spell the harmonic minor scale', mastery:2,
-      make:() => ({r:pick(rootsFor('minor').filter(r => isClean(scaleNotes(r,'harmonic'))))}),
+      make:(a,n) => ({r:lpick(a,n,'minor',rootsFor('minor').filter(r => isClean(scaleNotes(r,'harmonic'))))}),
       view:(q,api) => { const sc = scaleNotes(q.r,'harmonic'), all = sc.concat([q.r]);
         return qGrid({prompt:`Write the notes of <b>${nm(q.r)} harmonic minor</b>. The first note is given.`, cols:['1','2','3','4','5','6','7','8'], rowLabels:false,
           rows:[{cells:all.map((n,i) => i===0 ? {pre:nm(n)} : {expect:n})}], listen:[{label:'Hear it', fn:() => playEvents(scaleEvents(sc,60))}], hint:'Write the natural minor scale, then raise the 7th note by a semitone.', explain:`The 7th note is ${nm(sc[6])}.`}, api); }});
-    L.ex({id:'ear', title:'Which ending pulls home?', mastery:2,
-      make:() => ({k:pick(rootsFor('minor').filter(r => diatonic(r,'minor').every(d => isClean(d.notes)))), first:Math.random()<0.5}),
+    L.ex({id:'ear', title:'Which ending pulls home?', mastery:1,
+      make:(a,n) => ({k:lpick(a,n,'minor',rootsFor('minor').filter(r => diatonic(r,'minor').every(d => isClean(d.notes)))), first:Math.random()<0.5}),
       view:(q,api) => { const nat = [S(0,'min'),S(3,'min'),S(4,'min'),S(0,'min')], har = [S(0,'min'),S(3,'min'),S(4,'maj'),S(0,'min')]; const A = q.first ? har : nat, B = q.first ? nat : har;
         return qChoice({prompt:'Both clips end on the home chord. Which one has the stronger pull into the last chord?', listen:[{label:'Clip 1', fn:() => playEvents(clip(A,q.k,'minor'))},{label:'Clip 2', fn:() => playEvents(clip(B,q.k,'minor'))}],
           options:['Clip 1','Clip 2'], answer:q.first?0:1, explain:'The one with the major V chord, because its raised 3rd is a leading tone.'}, api); }});
     L.ex({id:'chords', title:'Dominant chords in a minor key', mastery:2,
-      make:() => ({k:pick(rootsFor('minor').filter(r => [S(4,'maj'),S(4,'dom7'),S(6,'dim',1)].every(s => isClean(resolve(r,'minor',s).notes))))}),
+      make:(a,n) => ({k:lpick(a,n,'minor',rootsFor('minor').filter(r => [S(4,'maj'),S(4,'dom7'),S(6,'dim',1)].every(s => isClean(resolve(r,'minor',s).notes))))}),
       view:(q,api) => { const rs = [S(4,'maj'),S(4,'dom7'),S(6,'dim',1)].map(s => resolve(q.k,'minor',s));
         return qGrid({kind:'chord', prompt:`In <b>${nm(q.k)} minor</b> with the raised 7th, write these chords.`, cols:['V','V7','vii°'], rowLabels:false, rows:[{cells:rs.map(r => ({expect:{root:r.root,q:r.q}}))}],
           hint:'The 5th note gives the root of V. The raised 7th note gives the root of vii°.', explain:rs.map(r=>r.sym).join('  ')}, api); }});
@@ -1547,6 +1644,12 @@ const BTEMPL = [
   {specs:[S(0,'maj'),S(2,'maj',-1),S(3,'maj'),S(0,'maj')], at:1, why:'♭III comes from the parallel minor.'},
   {specs:[S(0,'maj'),S(5,'maj',-1),S(4,'maj'),S(0,'maj')], at:1, why:'♭VI comes from the parallel minor.'},
 ];
+const EARB = [
+  {plain:[S(0,'maj'),S(3,'maj'),S(0,'maj')], bor:[S(0,'maj'),S(3,'min'),S(0,'maj')], why:'The borrowed clip has iv instead of IV: the chord turns minor and sounds wistful.'},
+  {plain:[S(0,'maj'),S(4,'maj'),S(3,'maj'),S(0,'maj')], bor:[S(0,'maj'),S(6,'maj',-1),S(3,'maj'),S(0,'maj')], why:'The borrowed clip has ♭VII instead of V: a rocky major chord from outside the key.'},
+  {plain:[S(0,'maj'),S(5,'min'),S(4,'maj'),S(0,'maj')], bor:[S(0,'maj'),S(5,'maj',-1),S(4,'maj'),S(0,'maj')], why:'The borrowed clip has ♭VI instead of vi: a bright, cinematic chord from the parallel minor.'},
+  {plain:[S(0,'maj'),S(2,'min'),S(3,'maj'),S(0,'maj')], bor:[S(0,'maj'),S(2,'maj',-1),S(3,'maj'),S(0,'maj')], why:'The borrowed clip has ♭III instead of iii: a warm, slightly defiant major chord.'},
+];
 LESSONS.push({ id:'borrowed', unit:'u8', title:'Borrowing from the parallel minor', sub:'Take a chord from the minor key that shares your home note.', exIds:['spot','ear'],
   build(L){
     L.p('So far every chord has come from one scale. But songwriters often reach outside the key for colour. The easiest source is the <b>parallel minor</b>: the minor key that starts on the same note. C major and C minor share the same home note C, but only some of their chords.');
@@ -1555,16 +1658,16 @@ LESSONS.push({ id:'borrowed', unit:'u8', title:'Borrowing from the parallel mino
     L.add(ParallelCompare());
     L.p('Listen to what one borrowed chord does. The first clip is entirely inside C major. In the second, the IV chord (F) is swapped for iv (Fm), borrowed from C minor.');
     L.add(ProgTabs({id:'bor', tabs:[{name:'IV → I', specs:[S(0,'maj'),S(3,'maj'),S(0,'maj')], desc:'Staying in the key: I – IV – I.'},{name:'iv → I (borrowed)', specs:[S(0,'maj'),S(3,'min'),S(0,'maj')], desc:'I – <b>iv</b> – I. The F becomes Fm. Same position, a more wistful colour.'}]}));
-    L.ex({id:'spot', title:'Spot the borrowed chord', mastery:3,
-      make:() => { const t = pick(BTEMPL); const k = pick(rootsFor('major').filter(r => t.specs.every(s => isClean(resolve(r,'major',s).notes)))); return {t,k}; },
+    L.ex({id:'spot', title:'Spot the borrowed chord', mastery:3, sig:q => BTEMPL.indexOf(q.t),
+      make:(a,n) => { const t = pick(BTEMPL); const k = lpick(a,n,'major',rootsFor('major').filter(r => t.specs.every(s => isClean(resolve(r,'major',s).notes)))); return {t,k}; },
       view:(q,api) => { const rs = q.t.specs.map(s => resolve(q.k,'major',s)); const names = rs.slice(0,3).map(r => r.sym); const opts = shuffle(names.map((n,i) => ({n,i})));
         return qChoice({prompt:`This progression is in <b>${nm(q.k)} major</b>: <b>${rs.map(r=>r.sym).join(' – ')}</b>. Which chord is borrowed from the parallel minor?`, options:opts.map(o => o.n), answer:opts.findIndex(o => o.i===q.t.at),
           listen:[{label:'Play it', fn:() => playEvents(progEvents(rs,0.9))}], hint:'Which chord is not one of the seven chords of the major key?', explain:`${rs[q.t.at].sym} (${rs[q.t.at].roman}): ${q.t.why}`}, api); }});
-    L.ex({id:'ear', title:'Hear the borrowed chord', mastery:2,
-      make:() => ({k:pick(rootsFor('major').filter(r => isClean(resolve(r,'major',S(3,'min')).notes))), first:Math.random()<0.5}),
-      view:(q,api) => { const plain = [S(0,'maj'),S(3,'maj'),S(0,'maj')], bor = [S(0,'maj'),S(3,'min'),S(0,'maj')]; const A = q.first ? bor : plain, B = q.first ? plain : bor;
+    L.ex({id:'ear', title:'Hear the borrowed chord', mastery:2, sig:q => q.e,
+      make:(a,n) => { const e = Math.floor(Math.random()*EARB.length), t = EARB[e]; return {e, k:lpick(a,n,'major',rootsFor('major').filter(r => t.bor.concat(t.plain).every(s => isClean(resolve(r,'major',s).notes)))), first:Math.random()<0.5}; },
+      view:(q,api) => { const plain = EARB[q.e].plain, bor = EARB[q.e].bor; const A = q.first ? bor : plain, B = q.first ? plain : bor;
         return qChoice({prompt:'One clip stays in the major key. The other borrows a chord from the minor. Which clip borrows?', listen:[{label:'Clip 1', fn:() => playEvents(clip(A,q.k))},{label:'Clip 2', fn:() => playEvents(clip(B,q.k))}],
-          options:['Clip 1','Clip 2'], answer:q.first?0:1, hint:'Listen for the clip that suddenly sounds darker in the middle.', explain:'The darker one has iv instead of IV.'}, api); }});
+          options:['Clip 1','Clip 2'], answer:q.first?0:1, hint:'Listen for the clip that suddenly sounds darker or more unexpected in the middle.', explain:EARB[q.e].why}, api); }});
   }});
 
 LESSONS.push({ id:'borrowed2', unit:'u8', title:'The sound of each borrowed chord', sub:'The four borrowed chords you will meet most.', exIds:['build'],
@@ -1578,8 +1681,8 @@ LESSONS.push({ id:'borrowed2', unit:'u8', title:'The sound of each borrowed chor
     ]}));
     L.wild('<b>iv:</b> “Creep” (Radiohead) moves G – B – C – Cm. The Cm is the borrowed iv.<br><b>♭VII:</b> the verse of “Sweet Child o’ Mine” (D – C – G – D) and the closing refrain of “Hey Jude” (F – E♭ – B♭ – F) are both I – ♭VII – IV – I.');
     L.callout('Borrowed chords usually come back to the home key quickly. One borrowed chord adds colour. Too many and the listener forgets where home is.', 'tip', 'Tip');
-    L.ex({id:'build', title:'Build the progression', mastery:3,
-      make:() => { const t = pick(BTEMPL); const k = pick(rootsFor('major').filter(r => t.specs.every(s => isClean(resolve(r,'major',s).notes)))); return {t,k}; },
+    L.ex({id:'build', title:'Build the progression', mastery:3, sig:q => BTEMPL.indexOf(q.t),
+      make:(a,n) => { const t = pick(BTEMPL); const k = lpick(a,n,'major',rootsFor('major').filter(r => t.specs.every(s => isClean(resolve(r,'major',s).notes)))); return {t,k}; },
       view:(q,api) => { const rs = q.t.specs.map(s => resolve(q.k,'major',s));
         return qGrid({kind:'chord', prompt:`Write this progression in <b>${nm(q.k)} major</b>.`, cols:q.t.specs.map(s => romanOf(s,'major')), rowLabels:false, rows:[{cells:rs.map(r => ({expect:{root:r.root,q:r.q}}))}],
           listen:[{label:'Hear the answer', fn:() => playEvents(progEvents(rs,0.9))}], hint:'A flat in front of the numeral means lower the chord’s root by a semitone from the major scale note.', explain:rs.map(r=>r.sym).join('  ')}, api); }});
@@ -1598,12 +1701,12 @@ LESSONS.push({ id:'secondary', unit:'u9', title:'Secondary dominants', sub:'Give
       {name:'V7/ii', specs:[S(0,'maj'),SEC(1),S(1,'min'),S(4,'dom7'),S(0,'maj')], desc:'I – <b>V7/ii</b> – ii – V7 – I. A chain of dominants, each pointing at the next.'},
     ]}));
     L.wild('<b>“Yesterday”</b> (The Beatles) goes F – Em7 – A7 – Dm in F. The A7 is V7/vi, pointing at Dm.');
-    L.ex({id:'name', title:'Write the secondary dominants', mastery:3,
-      make:() => { const k = pick(rootsFor('major').filter(r => [1,2,3,4,5].every(t => isClean(resolve(r,'major',SEC(t)).notes)))); return {k, ts:shuffle([1,2,3,4,5]).slice(0,2).sort()}; },
+    L.ex({id:'name', title:'Write the secondary dominants', mastery:3, sig:q => q.ts.join(),
+      make:(a,n) => { const k = lpick(a,n,'major',rootsFor('major').filter(r => [1,2,3,4,5].every(t => isClean(resolve(r,'major',SEC(t)).notes)))); return {k, ts:shuffle([1,2,3,4,5]).slice(0,2).sort()}; },
       view:(q,api) => { const rs = q.ts.map(t => resolve(q.k,'major',SEC(t))); return qGrid({kind:'chord', prompt:`In the key of <b>${nm(q.k)} major</b>, write these secondary dominants.`, cols:rs.map(r => r.roman), rowLabels:false,
         rows:[{cells:rs.map(r => ({expect:{root:r.root,q:'dom7'}}))}], hint:'Find the chord you are aiming at, go up a fifth for the root, then add a 7 (a dominant 7th).', explain:rs.map(r=>r.sym).join('  ')}, api); }});
-    L.ex({id:'id', title:'What is this chord?', mastery:3,
-      make:() => { const k = pick(rootsFor('major').filter(r => [1,2,3,4,5].every(t => isClean(resolve(r,'major',SEC(t)).notes)))); return {k, t:pick([1,2,3,4,5])}; },
+    L.ex({id:'id', title:'What is this chord?', mastery:3, sig:q => q.t,
+      make:(a,n) => { const k = lpick(a,n,'major',rootsFor('major').filter(r => [1,2,3,4,5].every(t => isClean(resolve(r,'major',SEC(t)).notes)))); return {k, t:pick([1,2,3,4,5])}; },
       view:(q,api) => { const k = q.k, tgt = diatonic(k,'major')[q.t], sd = resolve(k,'major',SEC(q.t)); const all = [1,2,3,4,5].map(t => resolve(k,'major',SEC(t)).roman); const opts = shuffle(all);
         return qChoice({prompt:`In <b>${nm(k)} major</b>, the progression <b>${nm(k)} – ${sd.sym} – ${tgt.sym}</b> includes a chord that is not in the key. What numeral describes <b>${sd.sym}</b>?`, options:opts, answer:opts.indexOf(sd.roman),
           listen:[{label:'Play it', fn:() => playEvents(progEvents([resolve(k,'major',S(0,'maj')),sd,tgt],1))}], hint:`${sd.sym} resolves down a fifth to ${tgt.sym}, so it is the dominant of ${tgt.sym}.`, explain:`${sd.sym} is the V7 of ${tgt.sym}, which is the ${['I','ii','iii','IV','V','vi'][q.t]} chord.`}, api); }});
@@ -1617,11 +1720,11 @@ LESSONS.push({ id:'related', unit:'u10', title:'Closely related keys', sub:'Whic
     L.add(CircleOfFifths());
     L.callout('From any major key, the closest relatives are: the key a fifth above (V), the key a fifth below (IV), and the relative minor (vi). In C major those are <b>G major, F major and A minor</b>. D minor and E minor are close as well.');
     L.ex({id:'near', title:'Which key is a neighbour?', mastery:3,
-      make:() => ({i:Math.floor(Math.random()*12), side:pick([1,11])}),
+      make:(a,n) => ({i:fifthIdx(a,n), side:pick([1,11])}),
       view:(q,api) => { const k = FIFTHS[q.i], ans = FIFTHS[(q.i+q.side)%12]; const far = shuffle([3,4,6,8,9].map(d => FIFTHS[(q.i+d)%12])).slice(0,3); const opts = shuffle([ans,...far]);
         return qChoice({prompt:`Which of these keys is a <b>neighbour</b> of <b>${nm(k)} major</b> on the circle of fifths?`, options:opts.map(n => nm(n)+' major'), answer:opts.indexOf(ans), explain:`${nm(ans)} major sits next to ${nm(k)} major, so they share six notes.`}, api); }});
     L.ex({id:'diff', title:'How many notes change?', mastery:3,
-      make:() => ({i:Math.floor(Math.random()*12), step:pick([1,2,3]), side:pick([1,-1])}),
+      make:(a,n) => ({i:fifthIdx(a,n), step:pick([1,2,3]), side:pick([1,-1])}),
       view:(q,api) => { const a = FIFTHS[q.i], b = FIFTHS[mod(q.i+q.side*q.step,12)]; const sa = scaleNotes(a,'major').map(pc), sb = scaleNotes(b,'major').map(pc); const diff = sb.filter(x => !sa.includes(x)).length;
         const opts = ['0','1','2','3','4']; return qChoice({prompt:`How many notes of <b>${nm(b)} major</b> are not in <b>${nm(a)} major</b>?`, options:opts, answer:diff, hint:'Compare the two scales note by note. Neighbours on the circle differ by one.', explain:`${nm(a)} major: ${joinN(scaleNotes(a,'major'))}. ${nm(b)} major: ${joinN(scaleNotes(b,'major'))}.`}, api); }});
   }});
@@ -1634,15 +1737,17 @@ LESSONS.push({ id:'pivot', unit:'u10', title:'Pivot chord modulation', sub:'Use 
     L.add(PivotFinder());
     L.h2('The recipe');
     L.callout('1. Start in the old key.<br>2. Move to a pivot chord (one that fits both keys, ideally a ii or IV in the new key).<br>3. Play the new key’s V7.<br>4. Land on the new I.');
-    const pairMake = () => { let i, side; do { i = Math.floor(Math.random()*12); side = pick([1,11]); const j = (i+side)%12; if(!((i===6&&j===7)||(i===7&&j===6))) break; } while(true); return {i, side}; };
+    const pairMake = (a,n) => { let i, side; do { i = fifthIdx(a,n); side = pick([1,11]); const j = (i+side)%12; if(!((i===6&&j===7)||(i===7&&j===6))) break; } while(true); return {i, side}; };
     L.ex({id:'find', title:'Find the pivot', mastery:3,
-      make:pairMake,
+      sig:q => q.ad,
+      make:(a,n) => { const p = pairMake(a,n), A = FIFTHS[p.i], B = FIFTHS[(p.i+p.side)%12], da = diatonic(A,'major'), db = diatonic(B,'major'); const shared = da.filter(x => db.some(y => y.sym===x.sym)); return {...p, ad:pick(shared).deg}; },
       view:(q,api) => { const A = FIFTHS[q.i], B = FIFTHS[(q.i+q.side)%12]; const da = diatonic(A,'major'), db = diatonic(B,'major'); const shared = da.filter(x => db.some(y => y.sym===x.sym)), notShared = da.filter(x => !db.some(y => y.sym===x.sym));
-        const ans = pick(shared); const opts = shuffle([ans, ...shuffle(notShared).slice(0,3)]);
+        const ans = da[q.ad]; const opts = shuffle([ans, ...shuffle(notShared).slice(0,3)]);
         return qChoice({prompt:`You are modulating from <b>${nm(A)} major</b> to <b>${nm(B)} major</b>. Which chord could act as a pivot?`, options:opts.map(o => o.sym), answer:opts.indexOf(ans), hint:'A pivot must be one of the seven chords in BOTH keys.', explain:`${ans.sym} is in ${nm(A)} major and in ${nm(B)} major.`}, api); }});
     L.ex({id:'numeral', title:'One chord, two jobs', mastery:3,
-      make:pairMake,
-      view:(q,api) => { const A = FIFTHS[q.i], B = FIFTHS[(q.i+q.side)%12]; const da = diatonic(A,'major'), db = diatonic(B,'major'); const pairs = da.map(x => ({x, y:db.find(y => y.sym===x.sym)})).filter(p => p.y); const p = pick(pairs);
+      sig:q => q.ad,
+      make:(a,n) => { const p = pairMake(a,n), A = FIFTHS[p.i], B = FIFTHS[(p.i+p.side)%12], da = diatonic(A,'major'), db = diatonic(B,'major'); return {...p, ad:pick(da.filter(x => db.some(y => y.sym===x.sym))).deg}; },
+      view:(q,api) => { const A = FIFTHS[q.i], B = FIFTHS[(q.i+q.side)%12]; const da = diatonic(A,'major'), db = diatonic(B,'major'); const pairs = da.map(x => ({x, y:db.find(y => y.sym===x.sym)})).filter(p => p.y); const p = pairs.find(pp => pp.x.deg===q.ad);
         const roms = ['I','ii','iii','IV','V','vi','vii°']; const ans = roms[p.y.deg]; const opts = shuffle([ans, ...shuffle(roms.filter(r => r!==ans)).slice(0,3)]);
         return qChoice({prompt:`<b>${p.x.sym}</b> is <b>${roms[p.x.deg]}</b> in ${nm(A)} major. Which numeral is it in <b>${nm(B)} major</b>?`, options:opts, answer:opts.indexOf(ans), explain:`${p.x.sym} is ${ans} in ${nm(B)} major.`}, api); }});
   }});
@@ -1654,14 +1759,14 @@ LESSONS.push({ id:'direct', unit:'u10', title:'Direct modulation and the dominan
     L.add(ModulationLab());
     L.callout('Numerals make direct modulation easy. The progression stays I – IV – V – I. Only the key changes, so you re-spell every chord in the new key.');
     L.wild('<b>“Love on Top”</b> (Beyoncé) climbs up by a semitone several times in its closing section: direct modulation as a showpiece.');
-    L.ex({id:'type', title:'Write the key change', mastery:2,
-      make:() => { const shift = pick([1,2,3]); const ls = shift===1?1:shift===2?1:2; const ok = r => inCircle(spellInterval(r,ls,shift));
-        const k = pick(rootsFor('major').filter(ok)); return {k, shift, B:spellInterval(k,ls,shift)}; },
+    L.ex({id:'type', title:'Write the key change', mastery:2, sig:q => q.shift,
+      make:(a,n) => { const shift = pick([1,2,3]); const ls = shift===1?1:shift===2?1:2; const ok = r => inCircle(spellInterval(r,ls,shift));
+        const k = lpick(a,n,'major',rootsFor('major').filter(ok)); return {k, shift, B:spellInterval(k,ls,shift)}; },
       view:(q,api) => { const P = [S(0,'maj'),S(3,'maj'),S(4,'maj'),S(0,'maj')]; const rs = P.map(s => resolve(q.B,'major',s)); const word = {1:'a semitone',2:'a tone',3:'a minor third'}[q.shift];
         return qGrid({kind:'chord', prompt:`A song in <b>${nm(q.k)} major</b> plays I – IV – V – I, then changes key up <b>${word}</b> and plays I – IV – V – I again. Write the chords of the second part.`, cols:['I','IV','V','I'], rowLabels:false, rows:[{cells:rs.map(r => ({expect:{root:r.root,q:r.q}}))}],
           hint:`The new key is ${word} above ${nm(q.k)}.`, listen:[{label:'Hear the answer', fn:() => playEvents(progEvents(P.map(s => resolve(q.k,'major',s)).concat(rs),0.85))}], explain:`The new key is ${nm(q.B)} major.`}, api); }});
-    L.ex({id:'ear', title:'Which clip changes key?', mastery:2,
-      make:() => ({k:pick(rootsFor('major').filter(r => inCircle(spellInterval(r,1,2)) && diatonic(r,'major').every(d=>isClean(d.notes)))), first:Math.random()<0.5}),
+    L.ex({id:'ear', title:'Which clip changes key?', mastery:1,
+      make:(a,n) => ({k:lpick(a,n,'major',rootsFor('major').filter(r => inCircle(spellInterval(r,1,2)) && diatonic(r,'major').every(d=>isClean(d.notes)))), first:Math.random()<0.5}),
       view:(q,api) => { const P = [S(0,'maj'),S(3,'maj'),S(4,'maj'),S(0,'maj')]; const B = spellInterval(q.k,1,2);
         const same = () => playEvents(progEvents(P.map(s=>resolve(q.k,'major',s)).concat(P.map(s=>resolve(q.k,'major',s))),0.7));
         const chg = () => playEvents(progEvents(P.map(s=>resolve(q.k,'major',s)).concat(P.map(s=>resolve(B,'major',s))),0.7));
@@ -1715,8 +1820,8 @@ const INFO = {
   s11:'Raise the 11th by a semitone. Bright and slightly floating. Common in jazz.',
 };
 const AFTER_DOM = (root,q) => [chordNotes(spellInterval(root,3,5),'maj')];
-const specEx = (id, title, qs) => ({ id, title, mastery:2,
-  make:() => { const q = pick(qs); return {q, r:pick(rootsOK(q))}; },
+const specEx = (id, title, qs) => ({ id, title, mastery:2, sig:q => q.q,
+  make:(a,n) => { const q = pick(qs); return {q, r:lcpick(a,n,rootsOK(q),q)}; },
   view:(q,api) => { const ns = chordNotes(q.r,q.q); const f = FORMULA[q.q].split(' ');
     return qGrid({prompt:`Write the notes of <b>${chordSym(q.r,q.q)}</b> (${Q[q.q].name}). Formula: <b class="mono">${FORMULA[q.q]}</b>`, cols:f, rowLabels:false, rows:[{cells:ns.map(n => ({expect:n}))}],
       listen:[{label:'Hear it to check', fn:() => { const c = chordEvent(ns,0,2,null,0); playEvents([c.ev]); }}],
@@ -1731,7 +1836,7 @@ LESSONS.push({ id:'sus', unit:'u12', title:'Suspended chords', sub:'Swap the 3rd
     L.wild('<b>“Wonderwall”</b> (Oasis) leans on Dsus4 and A7sus4. <b>“Free Fallin’”</b> (Tom Petty) alternates D and Dsus4.');
     L.ex(specEx('spell','Spell the suspended chord',['sus2','sus4']));
     L.ex({id:'ear', title:'Major, minor or suspended?', mastery:3,
-      make:() => ({q:pick(['maj','min','sus2','sus4']), r:pick(rootsOK('maj'))}),
+      make:(a,n) => ({q:pick(['maj','min','sus2','sus4']), r:lcpick(a,n,rootsOK(['maj','min','sus2','sus4']),'maj')}),
       view:(q,api) => qChoice({prompt:'Listen. Is this chord major, minor or suspended?', listen:[{label:'Play chord', fn:() => { const c = chordEvent(chordNotes(q.r,q.q),0,2,null,0); playEvents([c.ev]); }}],
         options:['Major','Minor','Suspended'], answer:q.q==='maj'?0:q.q==='min'?1:2, hint:'Major and minor have a clear mood. A suspended chord sounds open and unfinished.', explain:`That was ${chordSym(q.r,q.q)}.`}, api)});
   }});
@@ -1745,7 +1850,7 @@ LESSONS.push({ id:'augdim', unit:'u12', title:'Augmented and diminished chords',
     L.callout('A diminished 7th chord divides the octave into four equal steps, so every note can act as the root. That is why it is such a useful passing chord: one shape can lead to many places.', 'tip', 'Why it matters');
     L.ex(specEx('spell','Spell the chord',['dim','aug','dim7','m7b5']));
     L.ex({id:'ear', title:'Which one is it?', mastery:3,
-      make:() => ({q:pick(['dim','aug','dim7']), r:pick(rootsOK('dim7'))}),
+      make:(a,n) => ({q:pick(['dim','aug','dim7']), r:lcpick(a,n,rootsOK(['dim','aug','dim7']),'dim7')}),
       view:(q,api) => qChoice({prompt:'Listen. Which chord is this?', listen:[{label:'Play chord', fn:() => { const c = chordEvent(chordNotes(q.r,q.q),0,2,null,0); playEvents([c.ev]); }}],
         options:['Diminished','Augmented','Diminished 7th'], answer:['dim','aug','dim7'].indexOf(q.q), hint:'Augmented sounds dreamy and wide. Diminished sounds tense. Diminished 7th sounds like a thriller.', explain:`That was ${chordSym(q.r,q.q)}.`}, api)});
   }});
@@ -1759,12 +1864,12 @@ LESSONS.push({ id:'ninths', unit:'u12', title:'9ths, 11ths and 13ths', sub:'Keep
     L.add(ExtLab({id:'ex', qs:['add9','six','six9','maj9','m9','dom9','m11','dom13'], info:INFO, legend:['r','3','5','7','e'], afterLabel:'', after:null}));
     L.p('In practice players do not play every note. In big chords they often drop the 5th, and in 11th and 13th chords they may leave out notes that clash. The name tells you the colour, not the exact voicing.');
     L.ex(specEx('spell','Spell the chord',['add9','six','maj9','m9','dom9','m11','dom13']));
-    L.ex({id:'which', title:'Name the extension', mastery:3,
-      make:() => { const e = pick([[9,1,14],[11,3,17],[13,5,21]]); return {e, r:pick(ROOTPREF.filter(r => isClean(scaleNotes(r,'major'))))}; },
+    L.ex({id:'which', title:'Name the extension', mastery:3, sig:q => q.e[0],
+      make:(a,n) => { const e = pick([[9,1,14],[11,3,17],[13,5,21]]); return {e, r:lpick(a,n,'major',rootsFor('major'))}; },
       view:(q,api) => { const ans = spellInterval(q.r,q.e[1],q.e[2]); const sc = scaleNotes(q.r,'major'); const wr = shuffle(sc.filter(n => !sameNote(n,ans))).slice(0,3); const opts = shuffle([ans,...wr]);
         return qChoice({prompt:`What is the <b>${q.e[0]}th</b> of a <b>${nm(q.r)}</b> chord?`, options:opts.map(nm), answer:opts.indexOf(ans), hint:'Count the 9th as the 2nd, the 11th as the 4th, and the 13th as the 6th of the major scale.', explain:`The ${q.e[0]}th is the ${q.e[1]+1}${['st','nd','rd'][q.e[1]]||'th'} note of the ${nm(q.r)} major scale.`}, api); }});
     L.ex({id:'ear', title:'Hear the colour', mastery:2,
-      make:() => ({q:pick(['maj9','m9','dom9']), r:pick(rootsOK('maj9'))}),
+      make:(a,n) => ({q:pick(['maj9','m9','dom9']), r:lcpick(a,n,rootsOK('maj9'),'maj9')}),
       view:(q,api) => qChoice({prompt:'Listen. Which 9th chord is this?', listen:[{label:'Play chord', fn:() => { const c = chordEvent(chordNotes(q.r,q.q),0,2.2,null,0); playEvents([c.ev]); }}],
         options:['Major 9th','Minor 9th','Dominant 9th'], answer:['maj9','m9','dom9'].indexOf(q.q), hint:'Major 9th: dreamy. Minor 9th: soulful and dark. Dominant 9th: funky and restless.', explain:`That was ${chordSym(q.r,q.q)}.`}, api)});
   }});
@@ -1777,7 +1882,7 @@ LESSONS.push({ id:'altered', unit:'u12', title:'Altered fifths and ninths', sub:
     L.wild('<b>“Purple Haze”</b> (Jimi Hendrix) is built around E7♯9, nicknamed the Hendrix chord.');
     L.ex(specEx('spell','Spell the altered chord',['b5','s5','b9','s9','s11']));
     L.ex({id:'ear', title:'Which clip is altered?', mastery:2,
-      make:() => ({q:pick(['b9','s9','s5','b5']), r:pick(rootsOK('b9')), first:Math.random()<0.5}),
+      make:(a,n) => ({q:pick(['b9','s9','s5','b5']), r:lcpick(a,n,rootsOK('b9'),'b9'), first:Math.random()<0.5}),
       view:(q,api) => { const tgt = chordNotes(spellInterval(q.r,3,5),'maj');
         const plain = () => playEvents(progEvents([{notes:chordNotes(q.r,'dom7')},{notes:tgt}],1.1)), alt = () => playEvents(progEvents([{notes:chordNotes(q.r,q.q)},{notes:tgt}],1.1));
         return qChoice({prompt:'Both clips go from a dominant chord to the chord a fifth below. One uses a plain dominant 7th and one uses an altered one. Which is altered?', listen:[{label:'Clip 1', fn:q.first?alt:plain},{label:'Clip 2', fn:q.first?plain:alt}],
@@ -1834,13 +1939,13 @@ const App = {
       callout:(html,kind,label) => root.append(h('div',{class:'callout '+(kind||'')}, h('span',{class:'lbl'}, label || 'Key idea'), h('div',{html}))),
       wild:(html) => root.append(h('details',{class:'wild'}, h('summary',{}, 'Hear it in a real song'), h('div',{}, h('div',{html}), h('small',{}, 'Chords as commonly played. Recordings and charts can differ, so treat these as starting points.')))),
       add:el => root.append(el),
-      ex:def => { if(!started){ started = true; root.append(h('div',{class:'practise'}, h('h2',{}, 'Practise'), h('p',{}, 'You get a new question each time. Get each exercise right a couple of times to master it.'))); } root.append(Exercise(L, def)); } };
+      ex:def => { if(!started){ started = true; root.append(h('div',{class:'practise'}, h('h2',{}, 'Practise'), h('p',{}, 'You get a fresh question each time. The dots show how many you need to get right. Once an exercise is complete it locks, so you always know what is done.'))); } root.append(Exercise(L, def)); } };
     return L;
   },
   show(id){
     const l = LESSONS.find(x => x.id===id) || LESSONS[0]; this.cur = l;
     this.open = new Set([l.unit]);
-    Store.d.last = l.id; if(!l.exIds.length){ Store.d.seen = Store.d.seen || {}; Store.d.seen[l.id] = 1; } Store.save();
+    Store.d.last = l.id; try{ history.replaceState(null,'','#'+l.id); }catch(e){} if(!l.exIds.length){ Store.d.seen = Store.d.seen || {}; Store.d.seen[l.id] = 1; } Store.save();
     stopAudio();
     const main = document.getElementById('main'); main.replaceChildren();
     const L = this.makeL(l); const u = UNITS.find(x => x.id===l.unit); const idx = LESSONS.indexOf(l);
@@ -1870,5 +1975,4 @@ let started = false; const boot = () => { if(started) return; started = true; Ap
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 </script>
 
-</body>
-</html>
+</body></html>
