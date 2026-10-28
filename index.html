@@ -1295,8 +1295,10 @@ LESSONS.push({ id:'notes', unit:'u1', title:'Notes, semitones and tones', sub:'T
     L.p('Tap one key, then another. The page tells you how far apart they are. Try C to D, then E to F.');
     L.add(IntervalExplorer());
     L.callout('Look at E to F and B to C. There is no black key between them, so those white-to-white neighbours are <b>semitones</b>. Everywhere else, two neighbouring white keys are a tone apart.', 'tip', 'Notice');
+    let gapSeq = null;
     L.ex({id:'gap', title:'Semitone or tone?', mastery:3,
-      make:(att,n) => { const t = tierFor(att,n), s = t===0 ? pick([0,2,4,5,7,9,11]) : Math.floor(Math.random()*12), d = pick([1,2]); return {s, d, a:60+s, b:60+s+d}; },
+      make:(att,n) => { if(att===0 || !gapSeq) gapSeq = shuffle([1,2].concat(Array.from({length:Math.max(0,n-2)}, () => pick([1,2]))));
+        const t = tierFor(att,n), d = gapSeq[att % gapSeq.length], s = t===0 ? pick(d===1 ? [4,11] : [0,2,5,7,9]) : Math.floor(Math.random()*12); return {s, d, a:60+s, b:60+s+d}; },
       view:(q,api) => { const kb = Keyboard({lo:60,hi:76});
         kb.setMarks([{m:q.a,role:'r',label:SHARPS[mod(q.a,12)]},{m:q.b,role:'5',label:SHARPS[mod(q.b,12)]}]);
         return qChoice({prompt:`How big is the gap from <b>${SHARPS[mod(q.a,12)]}</b> up to <b>${SHARPS[mod(q.b,12)]}</b>?`, extra:kb.el, listen:[{label:'Hear the two notes', fn:() => playEvents([{t:0,midis:[q.a],dur:0.8,vel:0.4},{t:0.7,midis:[q.b],dur:1,vel:0.4}])}],
